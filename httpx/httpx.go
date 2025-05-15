@@ -22,7 +22,7 @@ import (
 // - 在controller中调用业务处理, 处理结束后调用PostProcess
 func PostProcess(ctx context.Context, c *app.RequestContext, req, resp any, err error) {
 	b3.New().Inject(ctx, &headerProvider{headers: &c.Response.Header})
-	logx.CtxInfo(ctx, "[%s] req=%s, resp=%s, err=%v", c.Path(), util.JsonF(req), util.JsonF(resp), err)
+	logx.CtxInfo(ctx, "[%s] req=%s, resp=%s, err=%v", c.Path(), util.JSONF(req), util.JSONF(resp), err)
 
 	// 无错, 正常响应
 	if err == nil {

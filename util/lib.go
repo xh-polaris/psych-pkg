@@ -10,8 +10,8 @@ import (
 	"io"
 )
 
-// JsonF 将对象序列化成json格式字符串
-func JsonF(v any) string {
+// JSONF 将对象序列化成json格式字符串
+func JSONF(v any) string {
 	data, err := json.Marshal(v)
 	if err != nil {
 		logx.Error("JSONF fail, v=%v, err=%v", v, err)

@@ -5,6 +5,7 @@ go 1.22.12
 require (
 	github.com/cloudwego/hertz v0.9.7
 	github.com/google/wire v0.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/hertz-contrib/websocket v0.2.0
 	github.com/zeromicro/go-zero v1.8.3
 	go.opentelemetry.io/contrib/propagators/b3 v1.35.0
