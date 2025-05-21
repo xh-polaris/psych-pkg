@@ -1,3 +1,7 @@
+// Copyright © 2025 univero. All rights reserved.
+// Licensed under the GNU Affero General Public License v3 (AGPL-3.0).
+// license that can be found in the LICENSE file.
+
 package httpx
 
 import (
@@ -31,6 +35,10 @@ func NewHttpClient() *HttpClient {
 		}
 	})
 	return client
+}
+
+func GetHttpClient() *HttpClient {
+	return NewHttpClient()
 }
 
 // do 发送请求
@@ -113,12 +121,12 @@ func (c *HttpClient) Stream(method, url string, headers http.Header, body interf
 }
 
 // StreamGet 流式Get请求
-func (c *HttpClient) StreamGet(url string, headers http.Header, body any, stream *StreamReader) (*StreamReader, error) {
+func (c *HttpClient) StreamGet(url string, headers http.Header, body any) (*StreamReader, error) {
 	return c.Stream("GET", url, headers, body)
 }
 
 // StreamPost 流式Post请求
-func (c *HttpClient) StreamPost(url string, headers http.Header, body any, stream *StreamReader) (*StreamReader, error) {
+func (c *HttpClient) StreamPost(url string, headers http.Header, body any) (*StreamReader, error) {
 	return c.Stream("POST", url, headers, body)
 }
 

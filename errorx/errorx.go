@@ -1,3 +1,7 @@
+// Copyright © 2025 univero. All rights reserved.
+// Licensed under the GNU Affero General Public License v3 (AGPL-3.0).
+// license that can be found in the LICENSE file.
+
 package errorx
 
 import (
@@ -17,6 +21,13 @@ const unknowCode = 999
 type Errorx struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
+}
+
+func New(code int, msg string) *Errorx {
+	return &Errorx{
+		Code: code,
+		Msg:  msg,
+	}
 }
 
 // Error 实现了error接口, 返回错误字符串
