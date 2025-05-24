@@ -55,6 +55,19 @@ type (
 		// Close 断开连接, 释放资源
 		Close() error
 	}
+	// TTSSetting tts设置
+	TTSSetting struct {
+		Namespace   string `json:"namespace"`
+		Speaker     string `json:"speaker"`
+		AudioParams struct {
+			Format       string `json:"format"`        // 音频格式
+			Rate         int32  `json:"rate"`          // 采用频率
+			Bit          int32  `json:"bit"`           // 比特率
+			SpeechRate   int32  `json:"speech_rate"`   // 语速 (volc)取值范围[-50,100]，100代表2.0倍速，-50代表0.5倍数
+			LoudnessRate int32  `json:"loudness_rate"` // 音量 (volc)取值范围[-50,100]，100代表2.0倍音量，-50代表0.5倍音量
+			Lang         string `json:"lang"`
+		} `json:"audio_params"`
+	}
 
 	// ASRApp 是通用语音识别
 	// 如果存在应用层面的握手过程需要由ASR内部实现
@@ -68,6 +81,17 @@ type (
 		Receive() (string, error)
 		// Close  关闭连接, 释放资源
 		Close() error
+	}
+	ASRSetting struct {
+		Format     string `json:"format"`      // 音频容器 (volc)pcm(pcm_s16le) / wav(pcm_s16le) / ogg
+		Codec      string `json:"codec"`       // 编码方式 (volc)raw / opus，默认为 raw(pcm)
+		Rate       int    `json:"rate"`        // 采样频率 (volc)默认为 16000，目前只支持16000
+		Bits       int    `json:"bits"`        // 比特率  (volc)默认为 16。
+		Channels   int    `json:"channels"`    // 声道个数 (volc)默认为 1
+		ModelName  string `json:"model_name"`  // 模型名称 (volc)目前只有bigmodel
+		EnablePunc bool   `json:"enable_punc"` // 启用标点
+		EnableDdc  bool   `json:"enable_ddc"`  // 启用语义顺滑
+		ResultType string `json:"result_type"` // 返回方式,full为全量, single为增量
 	}
 
 	// ReportApp 是报告分析大模型应用

@@ -66,3 +66,12 @@ func BytesToInt(data []byte) (int, error) {
 	}
 	return int(binary.BigEndian.Uint32(data)), nil
 }
+
+// BuildBytes 将传入的byte拼接并返回一个新的bytes数组
+func BuildBytes(data ...[]byte) []byte {
+	var b bytes.Buffer
+	for _, d := range data {
+		b.Write(d)
+	}
+	return b.Bytes()
+}
