@@ -6,10 +6,12 @@ package bailian
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/xh-polaris/psych-pkg/app"
 	"github.com/xh-polaris/psych-pkg/httpx"
+	"github.com/xh-polaris/psych-pkg/util"
 	"github.com/xh-polaris/psych-pkg/util/logx"
 	"io"
 	"net/http"
@@ -61,14 +63,14 @@ func NewBLChatApp(uSession, appId, apiKey string) app.ChatApp {
 }
 
 // Call 非流式调用，暂时没用上
-func (app *BLChatApp) Call(prompt, uSession string) (*app.ChatFrame, error) {
+func (app *BLChatApp) Call(ctx context.Context, prompt, uSession string) (*app.ChatFrame, error) {
 	// TODO implement
 	panic("implement me")
 }
 
 // StreamCall 流式调用
-func (app *BLChatApp) StreamCall(prompt, uSession string) (app.ChatAppScanner, error) {
-	client := httpx.GetHttpClient()
+func (app *BLChatApp) StreamCall(ctx context.Context, prompt, uSession string) (app.ChatAppScanner, error) {
+	client, ctx := httpx.GetHttpClient(), util.NNCtx(ctx)
 	// 设置调用提示词
 	app.body["input"].(map[string]string)["prompt"] = prompt
 	app.body["input"].(map[string]string)["session_id"] = app.dSession

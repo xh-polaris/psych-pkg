@@ -3,21 +3,25 @@ module github.com/xh-polaris/psych-pkg
 go 1.22.12
 
 require (
+	github.com/bytedance/gopkg v0.1.0
 	github.com/cloudwego/hertz v0.9.7
 	github.com/golang/glog v1.2.5
+	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hertz-contrib/websocket v0.2.0
+	github.com/xh-polaris/psych-idl v0.0.0-20250630102108-20de3557f38f
 	github.com/zeromicro/go-zero v1.8.3
 	go.opentelemetry.io/contrib/propagators/b3 v1.35.0
 	go.opentelemetry.io/otel v1.35.0
+	golang.org/x/net v0.35.0
 )
 
 require (
-	github.com/bytedance/gopkg v0.1.0 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/cloudwego/prutal v0.1.2 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect

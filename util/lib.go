@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/json"
@@ -74,4 +75,12 @@ func BuildBytes(data ...[]byte) []byte {
 		b.Write(d)
 	}
 	return b.Bytes()
+}
+
+// NNCtx 非空获取一个BackgroundCtx否则本身
+func NNCtx(ctx context.Context) context.Context {
+	if ctx == nil {
+		return context.Background()
+	}
+	return ctx
 }

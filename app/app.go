@@ -4,7 +4,10 @@
 
 package app
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 // End 用于流式中标识输出完成
 var End = errors.New("[app] no more")
@@ -15,9 +18,9 @@ type (
 	// 调用方通过sessionId来标识这一轮对话记录
 	ChatApp interface {
 		// Call 非流式调用
-		Call(prompt, sessionId string) (*ChatFrame, error)
+		Call(ctx context.Context, prompt, sessionId string) (*ChatFrame, error)
 		// StreamCall 流式调用, 默认应该采用增量输出, 即后续的输出不包括之前的输出
-		StreamCall(msg string, sessionId string) (ChatAppScanner, error)
+		StreamCall(ctx context.Context, msg string, sessionId string) (ChatAppScanner, error)
 		// Close 关闭资源
 		Close() error
 	}
@@ -47,16 +50,16 @@ type (
 	// 如果存在应用层面的握手过程需要由TTS内部实现
 	TTSApp interface {
 		// Dial 建立ws连接
-		Dial() error
+		Dial(ctx context.Context) error
 		// Send 发送文字请求
-		Send(texts string) error
+		Send(ctx context.Context, texts string) error
 		// Receive 接受音频流响应
-		Receive() []byte
+		Receive(ctx context.Context) ([]byte, error)
 		// Close 断开连接, 释放资源
 		Close() error
 	}
-	// TTSSetting tts设置
-	TTSSetting struct {
+	// MTTSSetting tts设置
+	MTTSSetting struct {
 		Namespace   string `json:"namespace"`
 		Speaker     string `json:"speaker"`
 		AudioParams struct {
@@ -69,16 +72,42 @@ type (
 		} `json:"audio_params"`
 	}
 
+	TTSSetting struct {
+		App struct {
+			AppID   string `json:"app_id"`  // AppID, 平台上查询
+			Token   string `json:"token"`   // 默认值, access_token
+			Cluster string `json:"cluster"` // 集群名称, 平台上查询
+		} `json:"app"`
+		User struct {
+			Uid string `json:"uid"` // 用户ID, 这里就用uSession
+		} `json:"user"`
+		Audio struct {
+			Language    string  `json:"language"`     // 语言
+			VoiceType   string  `json:"voice_type"`   // 发言人
+			Encoding    string  `json:"encoding"`     // 编码方式, 默认pcm
+			Rate        int32   `json:"rate"`         // 比特率, 默认24000
+			SpeedRatio  float32 `json:"speed_ratio"`  // 语速, 默认1.0
+			VolumeRatio float32 `json:"volume_ratio"` // 音量, 默认1.0
+			PitchRatio  float32 `json:"pitch_ratio"`  // 音准, 默认1.0
+		} `json:"audio"`
+		Request struct {
+			ReqID     string `json:"req_id"`    // 请求id, 用dSession
+			Text      string `json:"text"`      // 待识别文本
+			TextType  string `json:"text_type"` // 文字类型,默认plain
+			Operation string `json:"operation"` // 传输类型, 默认流式submit
+		} `json:"request"`
+	}
+
 	// ASRApp 是通用语音识别
 	// 如果存在应用层面的握手过程需要由ASR内部实现
 	ASRApp interface {
 		// Dial 建立ws连接
-		Dial() error
+		Dial(ctx context.Context) error
 		// Send 发送音频流
 		// 标识结束的音频流是一个全为1的字节
-		Send(bytes []byte) error
+		Send(ctx context.Context, bytes []byte) error
 		// Receive 接受文字响应 TODO: 暂时只有使用文字的需求, 后续若用到其余部分再迭代
-		Receive() (string, error)
+		Receive(ctx context.Context) (string, error)
 		// Close  关闭连接, 释放资源
 		Close() error
 	}
@@ -97,7 +126,7 @@ type (
 	// ReportApp 是报告分析大模型应用
 	ReportApp interface {
 		// Call 获取报告结果
-		Call(prompt string) (*Report, error)
+		Call(ctx context.Context, prompt string) (*Report, error)
 		// Close 关闭资源
 		Close() error
 	}

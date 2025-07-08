@@ -41,8 +41,9 @@ const (
 )
 
 var (
-	lastOne        byte = 255
-	DefaultSetting      = &app.ASRSetting{
+	// 标识最后一个音频包
+	lastOne           byte = 255
+	DefaultASRSetting      = &app.ASRSetting{
 		Format:     "pcm",
 		Codec:      "raw",
 		Rate:       16000,
@@ -53,6 +54,8 @@ var (
 		EnableDdc:  false,
 		ResultType: "single",
 	}
+	negHeader = getHeader(AudioOnlyRequest, NegSequence, JSON, GZIP, byte(0))
+	posHeader = getHeader(AudioOnlyRequest, PosSequence, JSON, GZIP, byte(0))
 )
 
 // VcASRApp 是火山引擎的大模型语音识别
@@ -61,6 +64,7 @@ var (
 type VcASRApp struct {
 	wsx *wsx.WSClient
 
+	// 鉴权与配置
 	appKey     string
 	accessKey  string
 	resourceId string
@@ -79,7 +83,7 @@ type VcASRApp struct {
 	header http.Header
 }
 
-// NewVcASRApp 构造一个新的
+// NewVcASRApp 构造一个新的ASR App
 func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *app.ASRSetting) *VcASRApp {
 	logId := genLogID()
 	dSession := uuid.New().String()
@@ -100,12 +104,8 @@ func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *a
 }
 
 // Dial 建立ws链接
-func (app *VcASRApp) Dial() error {
-	return app.DialCtx(nil)
-}
-
-// DialCtx 建立ws连接
-func (app *VcASRApp) DialCtx(ctx context.Context) (err error) {
+func (app *VcASRApp) Dial(ctx context.Context) (err error) {
+	ctx = util.NNCtx(ctx)
 	app.wsx, err = wsx.NewWSClientWithDial(ctx, app.url, app.header)
 	return err
 }
@@ -154,21 +154,23 @@ func (app *VcASRApp) Start() (err error) {
 }
 
 // Send 发送音频流
-func (app *VcASRApp) Send(data []byte) (err error) {
-	var payload []byte
+func (app *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
+	var payload, header []byte
+	ctx = util.NNCtx(ctx)
 
-	msgTypeSpecificFlags := NegSequence
+	// 判断是否最后一个包, 若是则负载为空
+	header = negHeader
 	if !isLast(data) { // 不是负包则正常处理
-		msgTypeSpecificFlags = PosSequence
+		header = posHeader
 		payload, err = util.GzipCompress(data)
 		if err != nil {
 			return err
 		}
 	}
 
+	// 发送音频流
 	app.seq++
 	seq := util.IntToBytes(app.seq)
-	header := getHeader(AudioOnlyRequest, msgTypeSpecificFlags, JSON, GZIP, byte(0))
 	payloadSize := util.IntToBytes(len(payload))
 	audioOnlyRequest := util.BuildBytes(header, seq, payloadSize, payload)
 	if err = app.wsx.WriteBytes(audioOnlyRequest); err != nil {
@@ -178,17 +180,17 @@ func (app *VcASRApp) Send(data []byte) (err error) {
 }
 
 // Receive 接受响应
-func (app *VcASRApp) Receive() (text string, err error) {
+func (app *VcASRApp) Receive(ctx context.Context) (text string, err error) {
 	var res []byte
 	var mt int
-	if mt, res, err = app.wsx.Read(); err != nil {
+	if mt, res, err = app.wsx.Read(); err == nil {
 		switch mt {
 		case websocket.BinaryMessage:
 			return app.receiveBytes(res)
 		case websocket.TextMessage:
 			return app.receiveText(res)
 		default:
-			return "", fmt.Errorf("invalid websocket message")
+			return "", fmt.Errorf("[volc asr] Receive: invalid websocket message")
 		}
 	}
 	return "", err
@@ -215,7 +217,7 @@ func (app *VcASRApp) receiveBytes(res []byte) (text string, err error) {
 	if text, ok := r["result"].(map[string]any)["text"].(string); ok {
 		return text, nil
 	}
-	return "", fmt.Errorf("invalid result")
+	return "", fmt.Errorf("[volc asr] receiveBytes: invalid result")
 }
 
 // Close 释放资源
