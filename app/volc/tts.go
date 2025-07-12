@@ -6,12 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/xh-polaris/psych-pkg/app"
 	"github.com/xh-polaris/psych-pkg/util"
 	"github.com/xh-polaris/psych-pkg/util/logx"
 	"github.com/xh-polaris/psych-pkg/wsx"
-
 	"net/http"
 )
 
@@ -72,10 +70,11 @@ var (
 			Operation: optSubmit,
 		},
 	}
+	unStart = "un-start"
 )
 
 // VcTTSApp 是火山引擎的常规文字转音频(非大模型)
-// 一次转换用一个连接, 前端和后端建立一个长连接, 使用ASR时再建立和ASR的短连接, 使用后关闭
+// 每一次文本到音频的转换需要使用一个链接, 但这个过程对于前端来说是被封装了的.
 type VcTTSApp struct {
 	wsx *wsx.WSClient
 
@@ -86,11 +85,7 @@ type VcTTSApp struct {
 
 	// seq 发送的消息序列号
 	seq int
-	// connId 连接id, 标识一次连接
-	connId string
-	// logId 服务端返回的logId, 用于定位问题
-	logId string
-	// session
+	// uSession 是一次对话的记录, 由上层传入, dSession是一轮转换的记录, 由自己管理
 	uSession, dSession string
 	// header 是请求头, 携带鉴权信息
 	header http.Header
@@ -98,31 +93,28 @@ type VcTTSApp struct {
 
 // NewVcNoModelTtsApp 构造一个新的
 func NewVcNoModelTtsApp(uSession, accessKey, url string, setting *app.TTSSetting) *VcTTSApp {
-	logId := genLogID()
-	dSession := uuid.New().String()
 	tts := &VcTTSApp{
 		accessKey: accessKey,
 		url:       url,
 		setting:   setting,
 		seq:       1,
-		logId:     logId,
 		uSession:  uSession,
-		dSession:  dSession,
+		dSession:  unStart,
 	}
 	tts.buildHTTPHeader()
 	return tts
 }
 
-// Dial 建立ws连接
+// Dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
 func (app *VcTTSApp) Dial(ctx context.Context) (err error) {
-	ctx = util.NNCtx(ctx)
-	app.wsx, err = wsx.NewWSClientWithDial(ctx, app.url, app.header)
+	app.dSession = util.NewUID()
+	app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
 	return err
 }
 
 // Start 完成应用层协议握手
 func (app *VcTTSApp) Start() (err error) {
-	// 大部分参数配置均在外部完成, 这里是为了和其他的TTSApp操作对齐所以如此操作
+	// 大部分参数配置均已在外部完成, 这里是为了和其他的TTSApp操作对齐以及设置请求标识ID
 	app.setting.User.Uid = app.dSession
 	app.setting.Request.ReqID = app.dSession
 	return nil

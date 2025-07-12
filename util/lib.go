@@ -7,8 +7,10 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/cloudwego/hertz/pkg/common/json"
+	"github.com/google/uuid"
 	"github.com/xh-polaris/psych-pkg/util/logx"
 	"io"
+	"time"
 )
 
 // JSONF 将对象序列化成json格式字符串
@@ -83,4 +85,11 @@ func NNCtx(ctx context.Context) context.Context {
 		return context.Background()
 	}
 	return ctx
+}
+
+// NewUID 常见一个包含时间的UUID
+func NewUID() string {
+	timestamp := time.Now().Format("060102-150405") // 格式化为YYMMDD-HHMMSS
+	uuidPart := uuid.New().String()[:4]             // 取UUID前4位
+	return fmt.Sprintf("%s-%s", timestamp, uuidPart)
 }
