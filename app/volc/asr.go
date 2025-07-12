@@ -3,7 +3,6 @@ package volc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/xh-polaris/psych-pkg/app"
 	"github.com/xh-polaris/psych-pkg/util"
@@ -73,10 +72,6 @@ type VcASRApp struct {
 
 	// seq 发送的消息序列号
 	seq int
-	// connId 连接id, 标识一次连接
-	connId string
-	// logId 服务端返回的logId, 用于定位问题
-	logId string
 	// session
 	uSession, dSession string
 	// header 是请求头, 携带鉴权信息
@@ -85,8 +80,6 @@ type VcASRApp struct {
 
 // NewVcASRApp 构造一个新的ASR App
 func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *app.ASRSetting) *VcASRApp {
-	logId := genLogID()
-	dSession := uuid.New().String()
 	asr := &VcASRApp{
 		appKey:     appKey,
 		accessKey:  accessKey,
@@ -94,19 +87,17 @@ func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *a
 		url:        url,
 		setting:    setting,
 		seq:        1,
-		connId:     dSession,
-		logId:      logId,
 		uSession:   uSession,
-		dSession:   dSession,
+		dSession:   unStart,
 	}
-	asr.buildHTTPHeader()
 	return asr
 }
 
 // Dial 建立ws链接
 func (app *VcASRApp) Dial(ctx context.Context) (err error) {
-	ctx = util.NNCtx(ctx)
-	app.wsx, err = wsx.NewWSClientWithDial(ctx, app.url, app.header)
+	app.dSession = util.NewUID()
+	app.buildHTTPHeader()
+	app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
 	return err
 }
 
@@ -257,11 +248,11 @@ func parse(res []byte) (data []byte, seq int, err error) {
 // buildHTTPHeader 构造鉴权请求头
 func (app *VcASRApp) buildHTTPHeader() {
 	app.header = http.Header{
-		"X-Tt-Logid":        []string{app.logId},
+		"X-Tt-Logid":        []string{app.dSession},
 		"X-Api-Resource-Id": []string{app.resourceId},
 		"X-Api-Access-Key":  []string{app.accessKey},
 		"X-Api-App-Key":     []string{app.appKey},
-		"X-Api-Connect-Id":  []string{app.connId},
+		"X-Api-Connect-Id":  []string{app.dSession},
 	}
 }
 

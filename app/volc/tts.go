@@ -70,7 +70,6 @@ var (
 			Operation: optSubmit,
 		},
 	}
-	unStart = "un-start"
 )
 
 // VcTTSApp 是火山引擎的常规文字转音频(非大模型)
