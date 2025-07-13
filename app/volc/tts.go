@@ -1,3 +1,7 @@
+// Copyright © 2025 univero. All rights reserved.
+// Licensed under the GNU Affero General Public License v3 (AGPL-3.0).
+// license that can be found in the LICENSE file.
+
 package volc
 
 import (
@@ -14,6 +18,10 @@ import (
 )
 
 var _ app.TTSApp = (*VcTTSApp)(nil)
+
+func init() {
+	app.TTSRegister("volc", NewVcTTSApp)
+}
 
 // TTS协议常量
 const (
@@ -78,9 +86,9 @@ type VcTTSApp struct {
 	wsx *wsx.WSClient
 
 	// 鉴权与配置
-	accessKey string
-	url       string
-	setting   *app.TTSSetting
+	appKey  string
+	url     string
+	setting *app.TTSSetting
 
 	// seq 发送的消息序列号
 	seq int
@@ -90,18 +98,21 @@ type VcTTSApp struct {
 	header http.Header
 }
 
-// NewVcNoModelTtsApp 构造一个新的
-func NewVcNoModelTtsApp(uSession, accessKey, url string, setting *app.TTSSetting) *VcTTSApp {
-	tts := &VcTTSApp{
-		accessKey: accessKey,
-		url:       url,
-		setting:   setting,
-		seq:       1,
-		uSession:  uSession,
-		dSession:  unStart,
+// NewVcTTSApp 构造一个新的
+func NewVcTTSApp(uSession, appKey, url string, setting any) app.TTSApp {
+	if reSetting, ok := setting.(*app.TTSSetting); ok {
+		tts := &VcTTSApp{
+			appKey:   appKey,
+			url:      url,
+			setting:  reSetting,
+			seq:      1,
+			uSession: uSession,
+			dSession: unStart,
+		}
+		tts.buildHTTPHeader()
+		return tts
 	}
-	tts.buildHTTPHeader()
-	return tts
+	return nil
 }
 
 // Dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
@@ -204,5 +215,5 @@ func parseAudio(res []byte) (audio []byte, isLast bool, err error) {
 
 // buildHTTPHeader 构造鉴权请求头
 func (app *VcTTSApp) buildHTTPHeader() {
-	app.header = http.Header{"Authorization": []string{fmt.Sprintf("Bearer;%s", app.accessKey)}}
+	app.header = http.Header{"Authorization": []string{fmt.Sprintf("Bearer;%s", app.appKey)}}
 }

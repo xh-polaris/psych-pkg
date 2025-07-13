@@ -15,6 +15,10 @@ import (
 
 var _ app.TTSApp = (*VcMTTSApp)(nil)
 
+func init() {
+	app.TTSRegister("volc-model", NewVcMTTSApp)
+}
+
 var DefaultMTTSSetting = &app.MTTSSetting{
 	Namespace: "BidirectionalTTS",
 	Speaker:   "zh_female_xinlingjitang_moon_bigtts",
@@ -42,33 +46,33 @@ type VcMTTSApp struct {
 	dialOnce  sync.Once
 	startOnce sync.Once
 	// ws 连接
-	wsx        *wsx.WSClient
-	appKey     string
-	accessKey  string
-	speaker    string
-	resourceId string
-	url        string
-	setting    *app.MTTSSetting
-	params     *TTSReqParams
+	wsx *wsx.WSClient
+
+	appKey  string
+	url     string
+	setting *app.MTTSSetting
+	params  *TTSReqParams
 
 	// uSession, 一次对话的ID
 	uSession string
+
 	// header 是请求头, 携带鉴权信息
 	header http.Header
 }
 
-func NewVcTTSApp(uSession, appKey, accessKey, speaker, resourceId, url string, setting *app.MTTSSetting) *VcMTTSApp {
-	tts := &VcMTTSApp{
-		appKey:     appKey,
-		accessKey:  accessKey,
-		speaker:    speaker,
-		url:        url,
-		resourceId: resourceId,
-		setting:    setting,
-		uSession:   uSession,
+// NewVcMTTSApp 创建一个大模型TTS App
+func NewVcMTTSApp(uSession, appKey, url string, setting any) app.TTSApp {
+	if reSetting, ok := setting.(*app.MTTSSetting); ok {
+		tts := &VcMTTSApp{
+			appKey:   appKey,
+			url:      url,
+			setting:  reSetting,
+			uSession: uSession,
+		}
+		tts.buildHTTPHeader()
+		return tts
 	}
-	tts.buildHTTPHeader()
-	return tts
+	return nil
 }
 
 // Dial 建立ws连接
@@ -167,9 +171,9 @@ func init() {
 func (app *VcMTTSApp) buildHTTPHeader() {
 	app.header = http.Header{
 		"X-Tt-Logid":        []string{app.uSession},
-		"X-Api-Resource-Id": []string{app.resourceId},
-		"X-Api-Access-Key":  []string{app.accessKey},
-		"X-Api-App-Key":     []string{app.appKey},
+		"X-Api-Resource-Id": []string{app.setting.ResourceId},
+		"X-Api-Access-Key":  []string{app.appKey},
+		"X-Api-App-Key":     []string{app.setting.AppID},
 		"X-Api-Connect-Id":  []string{app.uSession},
 	}
 }

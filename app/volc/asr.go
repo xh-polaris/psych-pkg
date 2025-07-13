@@ -1,3 +1,7 @@
+// Copyright © 2025 univero. All rights reserved.
+// Licensed under the GNU Affero General Public License v3 (AGPL-3.0).
+// license that can be found in the LICENSE file.
+
 package volc
 
 import (
@@ -13,6 +17,10 @@ import (
 )
 
 var _ app.ASRApp = (*VcASRApp)(nil)
+
+func init() {
+	app.ASRRegister("volc", NewVcASRApp)
+}
 
 // ASR协议常量
 const (
@@ -79,7 +87,7 @@ type VcASRApp struct {
 }
 
 // NewVcASRApp 构造一个新的ASR App
-func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *app.ASRSetting) *VcASRApp {
+func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *app.ASRSetting) app.ASRApp {
 	asr := &VcASRApp{
 		appKey:     appKey,
 		accessKey:  accessKey,

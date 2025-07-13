@@ -5,6 +5,7 @@
 package bailian
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/xh-polaris/psych-pkg/app"
@@ -15,6 +16,10 @@ import (
 )
 
 var _ app.ReportApp = (*BLReportApp)(nil)
+
+func init() {
+	app.ReportRegister("bailian", NewBLReportApp)
+}
 
 // BLReportApp 是阿里云报告分析大模型应用
 // 单次对话, 无需管理上下文
@@ -27,10 +32,10 @@ type BLReportApp struct {
 }
 
 // NewBLReportApp 创建一个百炼报告分析模型应用实例
-func NewBLReportApp(appId string, apiKey string) app.ReportApp {
+func NewBLReportApp(appId string, appKey string) app.ReportApp {
 	report := &BLReportApp{
 		appId:  appId,
-		apiKey: apiKey,
+		apiKey: appKey,
 		url:    fmt.Sprintf(baseUrl, appId),
 		header: http.Header{},
 		body:   make(map[string]any),
@@ -39,13 +44,13 @@ func NewBLReportApp(appId string, apiKey string) app.ReportApp {
 	report.body["input"] = make(map[string]string)
 	report.body["parameters"] = map[string]any{}
 	// 设置请求头,其中X-DashScope-SSE设置为enable，表示开启流式响应
-	report.header.Set("Authorization", "Bearer "+apiKey)
+	report.header.Set("Authorization", "Bearer "+appKey)
 	report.header.Set("Content-Type", "application/json")
 	return report
 }
 
 // Call 调用模型获取分析报告
-func (r *BLReportApp) Call(prompt string) (*app.Report, error) {
+func (r *BLReportApp) Call(ctx context.Context, prompt string) (*app.Report, error) {
 	var err error
 	var report app.Report
 	client := httpx.GetHttpClient()

@@ -22,6 +22,10 @@ import (
 
 var _ app.ChatApp = (*BLChatApp)(nil)
 
+func init() {
+	app.ChatRegister("bailian", NewBLChatApp)
+}
+
 // BLChatApp 是阿里云对话大模型应用
 // 使用云端上下文管理，本地不管理聊天记录, 默认采用增量流式输出
 type BLChatApp struct {
