@@ -50,21 +50,21 @@ var (
 			Uid: "",
 		},
 		Audio: struct {
-			Language    string  `json:"language"`
-			VoiceType   string  `json:"voice_type"`
-			Encoding    string  `json:"encoding"`
-			Rate        int32   `json:"rate"`
-			SpeedRatio  float32 `json:"speed_ratio"`
-			VolumeRatio float32 `json:"volume_ratio"`
-			PitchRatio  float32 `json:"pitch_ratio"`
+			Language   string  `json:"language"`
+			VoiceType  string  `json:"voice_type"`
+			Encoding   string  `json:"encoding"`
+			Rate       int32   `json:"rate"`
+			SpeedRate  float32 `json:"speed_ratio"`
+			VolumeRate float32 `json:"volume_ratio"`
+			PitchRate  float32 `json:"pitch_ratio"`
 		}{
-			Language:    "",
-			VoiceType:   "",
-			Encoding:    "pcm",
-			Rate:        24000,
-			SpeedRatio:  1.0,
-			VolumeRatio: 1.0,
-			PitchRatio:  1.0,
+			Language:   "",
+			VoiceType:  "",
+			Encoding:   "pcm",
+			Rate:       24000,
+			SpeedRate:  1.0,
+			VolumeRate: 1.0,
+			PitchRate:  1.0,
 		},
 		Request: struct {
 			ReqID     string `json:"req_id"`

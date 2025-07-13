@@ -45,13 +45,13 @@ type (
 			Uid string `json:"uid"` // 用户ID, 这里就用uSession
 		} `json:"user"`
 		Audio struct {
-			Language    string  `json:"language"`     // 语言
-			VoiceType   string  `json:"voice_type"`   // 发言人
-			Encoding    string  `json:"encoding"`     // 编码方式, 默认pcm
-			Rate        int32   `json:"rate"`         // 比特率, 默认24000
-			SpeedRatio  float32 `json:"speed_ratio"`  // 语速, 默认1.0
-			VolumeRatio float32 `json:"volume_ratio"` // 音量, 默认1.0
-			PitchRatio  float32 `json:"pitch_ratio"`  // 音准, 默认1.0
+			Language   string  `json:"language"`     // 语言
+			VoiceType  string  `json:"voice_type"`   // 发言人
+			Encoding   string  `json:"encoding"`     // 编码方式, 默认pcm
+			Rate       int32   `json:"rate"`         // 比特率, 默认24000
+			SpeedRate  float32 `json:"speed_ratio"`  // 语速, 默认1.0
+			VolumeRate float32 `json:"volume_ratio"` // 音量, 默认1.0
+			PitchRate  float32 `json:"pitch_ratio"`  // 音准, 默认1.0
 		} `json:"audio"`
 		Request struct {
 			ReqID     string `json:"req_id"`    // 请求id, 用dSession
