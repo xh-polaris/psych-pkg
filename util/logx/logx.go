@@ -30,6 +30,12 @@ func Error(format string, v ...any) {
 	getLogger().Errorf(format, v...)
 }
 
+func CondError(cond bool, format string, v ...any) {
+	if cond {
+		Error(format, v...)
+	}
+}
+
 func CtxDebug(ctx context.Context, format string, v ...any) {
 	getLoggerCtx(ctx).Debugf(format, v...)
 }
