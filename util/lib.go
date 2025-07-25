@@ -87,6 +87,11 @@ func NNCtx(ctx context.Context) context.Context {
 	return ctx
 }
 
+// NNCtxWithCancel 非空获取一个BackgroundCtx否则本身, 并返回cancelFunc
+func NNCtxWithCancel(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithCancel(NNCtx(ctx))
+}
+
 // NewUID 常见一个包含时间的UUID
 func NewUID() string {
 	timestamp := time.Now().Format("060102-150405") // 格式化为YYMMDD-HHMMSS

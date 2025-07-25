@@ -1,4 +1,4 @@
-package engine
+package core
 
 import (
 	"encoding/json"
@@ -22,16 +22,19 @@ var (
 )
 
 var (
-	CUserAudio CType = 1 // 用户音频输入
-	CUserText  CType = 2 // 用户文字输入
+	CUserText     CType = 1 // 用户文字输入
+	CUserAudio    CType = 2 // 用户音频输入, 直接作为输入, 也会返回识别结果给前端
+	CUserAudioASR CType = 3 // 用户音频输入, 用于识别
 )
 
 var (
-	GZIP int8 = 1
+	Version int8 = 1
+	GZIP    int8 = 1
+	JSON    int8 = 1
 )
 
 var (
-	JSON int8 = 1
+	AlreadyAuth int32 = -1 //"Already"
 )
 
 type (
@@ -55,27 +58,37 @@ type (
 	}
 
 	// Auth 认证消息
+	// 若用户在其他途径登录过来, 则使用Already类型并在authID传入用户ID, verifyCode中传入JWT, info中传入登录接口获取的额外信息
 	Auth struct {
 		AuthID     string            `json:"auth_id"`     // 认证ID, 如电话号码等
-		AuthType   string            `json:"auth_type"`   // 认证类型, 如strong, weak
-		VerifyType string            `json:"verify_type"` // 校验方式, 如Phone
-		Verify     string            `json:"verify"`      // 校验令牌, 如验证码
+		AuthType   int32             `json:"auth_type"`   // 校验方式, 如Phone
+		VerifyCode string            `json:"verify_code"` // 校验令牌, 如验证码
 		Info       map[string]string `json:"info"`        // 额外信息
 	}
 
 	// Config 配置消息
 	Config struct {
-		ChatConfig ChatConfig `json:"chat_config"`
-		ASRConfig  ASRConfig  `json:"asr_config"`
-		TTSConfig  TTSConfig  `json:"tts_config"`
+		ModelName    string       `json:"model_name"` // 模型名称
+		ModelView    string       `json:"model_view"` // 模型外观路径
+		ChatConfig   ChatConfig   `json:"chat_config"`
+		ASRConfig    ASRConfig    `json:"asr_config"`
+		TTSConfig    TTSConfig    `json:"tts_config"`
+		ReportConfig ReportConfig `json:"report_config"`
 	}
 
 	// ChatConfig 对话配置
 	ChatConfig struct {
+		Id string `json:"id"`
+	}
+
+	// ReportConfig 报表配置
+	ReportConfig struct {
+		Id string `json:"id"`
 	}
 
 	// ASRConfig ASR配置
 	ASRConfig struct {
+		Id         string `json:"id"`
 		Format     string `json:"format"`      // 音频容器格式
 		Codec      string `json:"codec"`       // 编码方式i
 		Rate       int    `json:"rate"`        // 采样频率
@@ -86,6 +99,7 @@ type (
 
 	// TTSConfig TTS配置
 	TTSConfig struct {
+		Id           string  `json:"id"`
 		Format       string  `json:"format"`        // 音频容器格式
 		Codec        string  `json:"codec"`         // 编码方式i
 		Rate         int     `json:"rate"`          // 采样频率
@@ -207,14 +221,18 @@ func EncodeMErr(code int, msg string) (*Message, error) {
 }
 
 var (
-	DecodeMsgErr []byte // 解码消息错误
-	UnSupportErr []byte // 不支持的消息类型
+	// ProtocolInitErr 协议初始化失败
+	ProtocolInitErr = &Err{Code: -1000, Message: "protocol init error"}
+	DecodeMsgErr    []byte // 解码消息错误
+	EncodeMsgErr    []byte // 编码消息错误
+	UnSupportErr    []byte // 不支持的消息类型
 )
 
 // init 初始化一些全局变量
 func init() {
 	var err error
 	var m *Message
+
 	// 解码消息错误
 	if m, err = EncodeMErr(-1001, "decode message error"); err != nil {
 		panic(fmt.Errorf("[protocol] DecodeMsgErr EncodeMErr error %s", err))
@@ -223,8 +241,15 @@ func init() {
 		panic(fmt.Errorf("[protocol] DecodeMsgErr MMarshal error %s", err))
 	}
 
+	if m, err = EncodeMErr(-1002, "encode message error"); err != nil {
+		panic(fmt.Errorf("[protocol] EncodeMsgErr EncodeMErr error %s", err))
+	}
+	if EncodeMsgErr, err = MMarshal(m, GZIP, JSON); err != nil {
+		panic(fmt.Errorf("[protocol] EncodeMsgErr MMarshal error %s", err))
+	}
+
 	// 不支持的消息类型错误
-	if m, err = EncodeMErr(-1002, "un-support message type error"); err != nil {
+	if m, err = EncodeMErr(-1003, "un-support message type error"); err != nil {
 		panic(fmt.Errorf("[protocol] UnSupportErr EncodeMErr error %s", err))
 	}
 	if UnSupportErr, err = MMarshal(m, GZIP, JSON); err != nil {

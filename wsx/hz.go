@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/hertz-contrib/websocket"
-	"github.com/xh-polaris/psych-pkg/errorx"
 )
 
 // hertz框架中websocket协议服务端
@@ -24,7 +23,7 @@ var HzUpgrader = websocket.HertzUpgrader{
 func UpgradeWs(ctx context.Context, c *app.RequestContext, handler HzWSHandler) error {
 	// 尝试升级协议, 处理请求
 	if err := HzUpgrader.Upgrade(c, func(conn *websocket.Conn) { handler(ctx, conn) }); err != nil {
-		return errorx.EndM(err, "upgrade ws failed")
+		return err
 	}
 	return nil
 }
