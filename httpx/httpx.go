@@ -14,6 +14,8 @@ import (
 	"reflect"
 )
 
+const hertzContext = "hertz_context"
+
 // httpx 是hertz框架的http处理package
 
 // PostProcess 处理http响应, resp要求指针或接口类型
@@ -96,4 +98,16 @@ func (m *headerProvider) Keys() []string {
 	})
 
 	return out
+}
+
+func InjectContext(ctx context.Context, c *app.RequestContext) context.Context {
+	return context.WithValue(ctx, hertzContext, c)
+}
+
+func ExtractContext(ctx context.Context) (*app.RequestContext, error) {
+	c, ok := ctx.Value(hertzContext).(*app.RequestContext)
+	if !ok {
+		return nil, errors.New("hertz context not found")
+	}
+	return c, nil
 }
