@@ -19,26 +19,6 @@ func init() {
 	app.TTSRegister("volc-model", NewVcMTTSApp)
 }
 
-var DefaultMTTSSetting = &app.MTTSSetting{
-	Namespace: "BidirectionalTTS",
-	Speaker:   "zh_female_xinlingjitang_moon_bigtts",
-	AudioParams: struct {
-		Format       string `json:"format"`
-		Rate         int32  `json:"rate"`
-		Bit          int32  `json:"bit"`
-		SpeechRate   int32  `json:"speech_rate"`
-		LoudnessRate int32  `json:"loudness_rate"`
-		Lang         string `json:"lang"`
-	}{
-		Format:       "pcm",
-		Rate:         24000,
-		Bit:          16000,
-		SpeechRate:   0,
-		LoudnessRate: 0,
-		Lang:         "zh",
-	},
-}
-
 // VcMTTSApp 是火山引擎的大模型语音合成
 // 默认双向流式, 一次对话只需要建立一个链接即可使用到最后.
 // 由于火山的文档写的有点语焉不详, 示例代码又没有明确的说明, 所以有些代码看着很冗余也只能先留着
@@ -48,10 +28,11 @@ type VcMTTSApp struct {
 	// ws 连接
 	wsx *wsx.WSClient
 
-	appKey  string
-	url     string
-	setting *app.MTTSSetting
-	params  *TTSReqParams
+	appId     string
+	accessKey string
+	url       string
+	setting   *app.TTSSetting
+	params    *TTSReqParams
 
 	// uSession, 一次对话的ID
 	uSession string
@@ -61,18 +42,16 @@ type VcMTTSApp struct {
 }
 
 // NewVcMTTSApp 创建一个大模型TTS App
-func NewVcMTTSApp(uSession, appKey, url string, setting any) app.TTSApp {
-	if reSetting, ok := setting.(*app.MTTSSetting); ok {
-		tts := &VcMTTSApp{
-			appKey:   appKey,
-			url:      url,
-			setting:  reSetting,
-			uSession: uSession,
-		}
-		tts.buildHTTPHeader()
-		return tts
+func NewVcMTTSApp(uSession, appId, accessKey, url string, setting *app.TTSSetting) app.TTSApp {
+	tts := &VcMTTSApp{
+		appId:     appId,
+		accessKey: accessKey,
+		url:       url,
+		setting:   setting,
+		uSession:  uSession,
 	}
-	return nil
+	tts.buildHTTPHeader()
+	return tts
 }
 
 // Dial 建立ws连接
@@ -172,8 +151,8 @@ func (app *VcMTTSApp) buildHTTPHeader() {
 	app.header = http.Header{
 		"X-Tt-Logid":        []string{app.uSession},
 		"X-Api-Resource-Id": []string{app.setting.ResourceId},
-		"X-Api-Access-Key":  []string{app.appKey},
-		"X-Api-App-Key":     []string{app.setting.AppID},
+		"X-Api-Access-Key":  []string{app.accessKey},
+		"X-Api-App-Key":     []string{app.appId},
 		"X-Api-Connect-Id":  []string{app.uSession},
 	}
 }

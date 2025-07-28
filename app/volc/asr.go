@@ -72,7 +72,7 @@ type VcASRApp struct {
 	wsx *wsx.WSClient
 
 	// 鉴权与配置
-	appKey     string
+	appId      string
 	accessKey  string
 	resourceId string
 	url        string
@@ -87,24 +87,23 @@ type VcASRApp struct {
 }
 
 // NewVcASRApp 构造一个新的ASR App
-func NewVcASRApp(uSession, appKey, accessKey, resourceId, url string, setting *app.ASRSetting) app.ASRApp {
+func NewVcASRApp(uSession, appId, accessKey, resourceId, url string, setting *app.ASRSetting) app.ASRApp {
 	asr := &VcASRApp{
-		appKey:     appKey,
+		appId:      appId,
 		accessKey:  accessKey,
 		resourceId: resourceId,
 		url:        url,
 		setting:    setting,
 		seq:        1,
 		uSession:   uSession,
-		dSession:   unStart,
+		dSession:   util.NewUID(),
 	}
+	asr.buildHTTPHeader()
 	return asr
 }
 
 // Dial 建立ws链接
 func (app *VcASRApp) Dial(ctx context.Context) (err error) {
-	app.dSession = util.NewUID()
-	app.buildHTTPHeader()
 	app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
 	return err
 }
@@ -259,7 +258,7 @@ func (app *VcASRApp) buildHTTPHeader() {
 		"X-Tt-Logid":        []string{app.dSession},
 		"X-Api-Resource-Id": []string{app.resourceId},
 		"X-Api-Access-Key":  []string{app.accessKey},
-		"X-Api-App-Key":     []string{app.appKey},
+		"X-Api-App-Key":     []string{app.appId},
 		"X-Api-Connect-Id":  []string{app.dSession},
 	}
 }

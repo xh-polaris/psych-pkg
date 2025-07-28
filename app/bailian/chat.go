@@ -29,9 +29,9 @@ func init() {
 // BLChatApp 是阿里云对话大模型应用
 // 使用云端上下文管理，本地不管理聊天记录, 默认采用增量流式输出
 type BLChatApp struct {
-	appId  string
-	apiKey string
-	url    string
+	appId     string
+	accessKey string
+	url       string
 
 	header http.Header
 	body   map[string]any
@@ -43,14 +43,14 @@ type BLChatApp struct {
 }
 
 // NewBLChatApp 创建一个百炼模型应用实例
-func NewBLChatApp(uSession, appId, apiKey string) app.ChatApp {
+func NewBLChatApp(uSession, appId, accessKey string) app.ChatApp {
 	chat := &BLChatApp{
-		appId:    appId,
-		apiKey:   apiKey,
-		url:      fmt.Sprintf(baseUrl, appId),
-		header:   http.Header{},
-		body:     make(map[string]any),
-		uSession: uSession,
+		appId:     appId,
+		accessKey: accessKey,
+		url:       fmt.Sprintf(baseUrl, appId),
+		header:    http.Header{},
+		body:      make(map[string]any),
+		uSession:  uSession,
 	}
 
 	// 初始化请求模板
@@ -60,7 +60,7 @@ func NewBLChatApp(uSession, appId, apiKey string) app.ChatApp {
 		"incremental_output": true,
 	}
 	// 设置请求头,其中X-DashScope-SSE设置为enable，表示开启流式响应
-	chat.header.Set("Authorization", "Bearer "+apiKey)
+	chat.header.Set("Authorization", "Bearer "+accessKey)
 	chat.header.Set("Content-Type", "application/json")
 	chat.header.Set("X-DashScope-SSE", "enable")
 	return chat

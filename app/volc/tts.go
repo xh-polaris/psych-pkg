@@ -33,51 +33,7 @@ const (
 // message type specific flags: b0000 (none) (4bits) message serialization method: b0001 (JSON) (4 bits)
 // message compression: b0001 (gzip) (4bits) reserved data: 0x00 (1 byte)
 var (
-	defaultHeader     = []byte{0x11, 0x10, 0x11, 0x00}
-	DefaultTTSSetting = &app.TTSSetting{
-		App: struct {
-			AppID   string `json:"app_id"`
-			Token   string `json:"token"`
-			Cluster string `json:"cluster"`
-		}{
-			AppID:   "",
-			Token:   "access_token",
-			Cluster: "",
-		},
-		User: struct {
-			Uid string `json:"uid"`
-		}{
-			Uid: "",
-		},
-		Audio: struct {
-			Language   string  `json:"language"`
-			VoiceType  string  `json:"voice_type"`
-			Encoding   string  `json:"encoding"`
-			Rate       int32   `json:"rate"`
-			SpeedRate  float32 `json:"speed_ratio"`
-			VolumeRate float32 `json:"volume_ratio"`
-			PitchRate  float32 `json:"pitch_ratio"`
-		}{
-			Language:   "",
-			VoiceType:  "",
-			Encoding:   "pcm",
-			Rate:       24000,
-			SpeedRate:  1.0,
-			VolumeRate: 1.0,
-			PitchRate:  1.0,
-		},
-		Request: struct {
-			ReqID     string `json:"req_id"`
-			Text      string `json:"text"`
-			TextType  string `json:"text_type"`
-			Operation string `json:"operation"`
-		}{
-			ReqID:     "",
-			Text:      "",
-			TextType:  "plain",
-			Operation: optSubmit,
-		},
-	}
+	defaultHeader = []byte{0x11, 0x10, 0x11, 0x00}
 )
 
 // VcTTSApp 是火山引擎的常规文字转音频(非大模型)
@@ -86,9 +42,10 @@ type VcTTSApp struct {
 	wsx *wsx.WSClient
 
 	// 鉴权与配置
-	appKey  string
-	url     string
-	setting *app.TTSSetting
+	appId     string
+	accessKey string
+	url       string
+	setting   *volcTTSSetting
 
 	// seq 发送的消息序列号
 	seq int
@@ -99,25 +56,23 @@ type VcTTSApp struct {
 }
 
 // NewVcTTSApp 构造一个新的
-func NewVcTTSApp(uSession, appKey, url string, setting any) app.TTSApp {
-	if reSetting, ok := setting.(*app.TTSSetting); ok {
-		tts := &VcTTSApp{
-			appKey:   appKey,
-			url:      url,
-			setting:  reSetting,
-			seq:      1,
-			uSession: uSession,
-			dSession: unStart,
-		}
-		tts.buildHTTPHeader()
-		return tts
+func NewVcTTSApp(uSession, appId, accessKey, url string, setting *app.TTSSetting) app.TTSApp {
+	tts := &VcTTSApp{
+		appId:     appId,
+		accessKey: accessKey,
+		url:       url,
+		seq:       1,
+		uSession:  uSession,
+		dSession:  util.NewUID(),
 	}
-	return nil
+	tts.buildHTTPHeader()
+	tts.buildSetting(setting)
+	return tts
+
 }
 
 // Dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
 func (app *VcTTSApp) Dial(ctx context.Context) (err error) {
-	app.dSession = util.NewUID()
 	app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
 	return err
 }
@@ -215,5 +170,44 @@ func parseAudio(res []byte) (audio []byte, isLast bool, err error) {
 
 // buildHTTPHeader 构造鉴权请求头
 func (app *VcTTSApp) buildHTTPHeader() {
-	app.header = http.Header{"Authorization": []string{fmt.Sprintf("Bearer;%s", app.appKey)}}
+	app.header = http.Header{"Authorization": []string{fmt.Sprintf("Bearer;%s", app.accessKey)}}
+}
+
+func (app *VcTTSApp) buildSetting(setting *app.TTSSetting) {
+	set := &volcTTSSetting{}
+	set.App.AppID, set.App.Token, set.App.Cluster = app.appId, app.accessKey, setting.ResourceId
+	set.Audio.Language, set.Audio.VoiceType, set.Audio.Encoding = setting.AudioParams.Lang, setting.Speaker, setting.AudioParams.Format
+	set.Audio.Rate, set.Audio.SpeedRate = setting.AudioParams.Bit, float32(100+setting.AudioParams.SpeechRate)/100
+	set.Audio.VolumeRate, set.Audio.PitchRate = float32(100+setting.AudioParams.LoudnessRate)/100, 1.0
+	if setting.Stream {
+		set.Request.Operation = optSubmit
+	} else {
+		set.Request.Operation = optQuery
+	}
+}
+
+type volcTTSSetting struct {
+	App struct {
+		AppID   string `json:"app_id"`  // AppID, 应用标识, 平台上查询
+		Token   string `json:"token"`   // 默认值, access_token
+		Cluster string `json:"cluster"` // 集群名称, 平台上查询
+	} `json:"app"`
+	User struct {
+		Uid string `json:"uid"` // 用户ID, 这里就用uSession
+	} `json:"user"`
+	Audio struct {
+		Language   string  `json:"language"`     // 语言
+		VoiceType  string  `json:"voice_type"`   // 发言人
+		Encoding   string  `json:"encoding"`     // 编码方式, 默认pcm
+		Rate       int32   `json:"rate"`         // 比特率, 默认24000
+		SpeedRate  float32 `json:"speed_ratio"`  // 语速, 默认1.0
+		VolumeRate float32 `json:"volume_ratio"` // 音量, 默认1.0
+		PitchRate  float32 `json:"pitch_ratio"`  // 音准, 默认1.0
+	} `json:"audio"`
+	Request struct {
+		ReqID     string `json:"req_id"`    // 请求id, 用dSession
+		Text      string `json:"text"`      // 待识别文本
+		TextType  string `json:"text_type"` // 文字类型,默认plain
+		Operation string `json:"operation"` // 传输类型, 默认流式submit
+	} `json:"request"`
 }

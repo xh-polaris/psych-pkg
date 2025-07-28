@@ -19,13 +19,13 @@ type (
 		// Close 断开连接, 释放资源
 		Close() error
 	}
-	// MTTSSetting tts设置
-	MTTSSetting struct {
-		AppID       string `json:"app_id"`
-		Namespace   string `json:"namespace"`
-		Speaker     string `json:"speaker"`
-		ResourceId  string `json:"resourceId"`
-		AudioParams struct {
+	// TTSSetting tts设置
+	TTSSetting struct {
+		Namespace   string   `json:"namespace"`
+		Speaker     string   `json:"speaker"`
+		ResourceId  string   `json:"resourceId"` // 资源ID或ClusterID
+		Stream      bool     `json:"stream"`     // 是否流式
+		AudioParams struct { // 音频参数
 			Format       string `json:"format"`        // 音频格式
 			Rate         int32  `json:"rate"`          // 采用频率
 			Bit          int32  `json:"bit"`           // 比特率
@@ -34,39 +34,13 @@ type (
 			Lang         string `json:"lang"`
 		} `json:"audio_params"`
 	}
-
-	TTSSetting struct {
-		App struct {
-			AppID   string `json:"app_id"`  // AppID, 应用标识, 平台上查询
-			Token   string `json:"token"`   // 默认值, access_token
-			Cluster string `json:"cluster"` // 集群名称, 平台上查询
-		} `json:"app"`
-		User struct {
-			Uid string `json:"uid"` // 用户ID, 这里就用uSession
-		} `json:"user"`
-		Audio struct {
-			Language   string  `json:"language"`     // 语言
-			VoiceType  string  `json:"voice_type"`   // 发言人
-			Encoding   string  `json:"encoding"`     // 编码方式, 默认pcm
-			Rate       int32   `json:"rate"`         // 比特率, 默认24000
-			SpeedRate  float32 `json:"speed_ratio"`  // 语速, 默认1.0
-			VolumeRate float32 `json:"volume_ratio"` // 音量, 默认1.0
-			PitchRate  float32 `json:"pitch_ratio"`  // 音准, 默认1.0
-		} `json:"audio"`
-		Request struct {
-			ReqID     string `json:"req_id"`    // 请求id, 用dSession
-			Text      string `json:"text"`      // 待识别文本
-			TextType  string `json:"text_type"` // 文字类型,默认plain
-			Operation string `json:"operation"` // 传输类型, 默认流式submit
-		} `json:"request"`
-	}
 )
 
 // ttsFactory TTSApp的构造函数类型
 // 火山鉴权参数命名不统一, 这里做个说明:
 // 在代码中appID是应用标识, appKey是应用token; appID应在setting中, appKey作为参数传入
 // 在请求中appKey是应用标识, accessKey是应用token
-type ttsFactory func(uSession, appKey, url string, setting any) TTSApp
+type ttsFactory func(uSession, appId, accessKey, url string, setting *TTSSetting) TTSApp
 
 // ttsProviders TTSApp的构造函数
 var ttsProviders = make(map[string]ttsFactory)
@@ -77,9 +51,9 @@ func TTSRegister(name string, factory ttsFactory) {
 }
 
 // NewTTSApp 构造TTSApp的工厂方法
-func NewTTSApp(provider, uSession, appKey, url string, setting any) (TTSApp, error) {
+func NewTTSApp(provider, uSession, appId, accessKey, url string, setting *TTSSetting) (TTSApp, error) {
 	if factory, ok := ttsProviders[provider]; ok {
-		return factory(uSession, appKey, url, setting), nil
+		return factory(uSession, appId, accessKey, url, setting), nil
 	}
 	return nil, NoFactory
 }

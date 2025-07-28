@@ -24,27 +24,27 @@ func init() {
 // BLReportApp 是阿里云报告分析大模型应用
 // 单次对话, 无需管理上下文
 type BLReportApp struct {
-	appId  string
-	apiKey string
-	url    string
-	header http.Header
-	body   map[string]any
+	appId     string
+	accessKey string
+	url       string
+	header    http.Header
+	body      map[string]any
 }
 
 // NewBLReportApp 创建一个百炼报告分析模型应用实例
-func NewBLReportApp(appId string, appKey string) app.ReportApp {
+func NewBLReportApp(appId string, accessKey string) app.ReportApp {
 	report := &BLReportApp{
-		appId:  appId,
-		apiKey: appKey,
-		url:    fmt.Sprintf(baseUrl, appId),
-		header: http.Header{},
-		body:   make(map[string]any),
+		appId:     appId,
+		accessKey: accessKey,
+		url:       fmt.Sprintf(baseUrl, appId),
+		header:    http.Header{},
+		body:      make(map[string]any),
 	}
 	// 初始化请求模板
 	report.body["input"] = make(map[string]string)
 	report.body["parameters"] = map[string]any{}
 	// 设置请求头,其中X-DashScope-SSE设置为enable，表示开启流式响应
-	report.header.Set("Authorization", "Bearer "+appKey)
+	report.header.Set("Authorization", "Bearer "+accessKey)
 	report.header.Set("Content-Type", "application/json")
 	return report
 }
