@@ -47,8 +47,10 @@ func (c *Channel[T]) Send(msg T) {
 type Action string
 
 const (
-	Read  Action = "read"
-	Pong  Action = "pong"
-	UMMsg        = "unmarshal message"
-	DMsg         = "decode message"
+	ARead   Action = "read"
+	APong   Action = "pong"
+	AUMMsg  Action = "unmarshal message"
+	ADMsg   Action = "decode message"
+	AConfig Action = "config"
+	AAuth   Action = "auth"
 )
