@@ -9,6 +9,8 @@ type Engine interface {
 	Run()
 	// Close 释放Engine资源
 	Close() (err error)
+	// Session 获取会话标识
+	Session() string
 }
 
 type CloseChannel interface {
