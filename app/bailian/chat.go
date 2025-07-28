@@ -43,11 +43,11 @@ type BLChatApp struct {
 }
 
 // NewBLChatApp 创建一个百炼模型应用实例
-func NewBLChatApp(uSession, appId, accessKey string) app.ChatApp {
+func NewBLChatApp(uSession string, setting *app.ChatSetting) app.ChatApp {
 	chat := &BLChatApp{
-		appId:     appId,
-		accessKey: accessKey,
-		url:       fmt.Sprintf(baseUrl, appId),
+		appId:     setting.AppId,
+		accessKey: setting.AccessKey,
+		url:       fmt.Sprintf(setting.Url, setting.Url),
 		header:    http.Header{},
 		body:      make(map[string]any),
 		uSession:  uSession,
@@ -60,7 +60,7 @@ func NewBLChatApp(uSession, appId, accessKey string) app.ChatApp {
 		"incremental_output": true,
 	}
 	// 设置请求头,其中X-DashScope-SSE设置为enable，表示开启流式响应
-	chat.header.Set("Authorization", "Bearer "+accessKey)
+	chat.header.Set("Authorization", "Bearer "+setting.AccessKey)
 	chat.header.Set("Content-Type", "application/json")
 	chat.header.Set("X-DashScope-SSE", "enable")
 	return chat

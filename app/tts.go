@@ -21,6 +21,11 @@ type (
 	}
 	// TTSSetting tts设置
 	TTSSetting struct {
+		Id          string   `json:"id"`
+		Provider    string   `json:"provider"`
+		Url         string   `json:"url"`
+		AppID       string   `json:"app_id"`
+		AccessKey   string   `json:"access_key"`
 		Namespace   string   `json:"namespace"`
 		Speaker     string   `json:"speaker"`
 		ResourceId  string   `json:"resourceId"` // 资源ID或ClusterID
@@ -40,7 +45,7 @@ type (
 // 火山鉴权参数命名不统一, 这里做个说明:
 // 在代码中appID是应用标识, appKey是应用token; appID应在setting中, appKey作为参数传入
 // 在请求中appKey是应用标识, accessKey是应用token
-type ttsFactory func(uSession, appId, accessKey, url string, setting *TTSSetting) TTSApp
+type ttsFactory func(uSession string, setting *TTSSetting) TTSApp
 
 // ttsProviders TTSApp的构造函数
 var ttsProviders = make(map[string]ttsFactory)
@@ -51,9 +56,9 @@ func TTSRegister(name string, factory ttsFactory) {
 }
 
 // NewTTSApp 构造TTSApp的工厂方法
-func NewTTSApp(provider, uSession, appId, accessKey, url string, setting *TTSSetting) (TTSApp, error) {
-	if factory, ok := ttsProviders[provider]; ok {
-		return factory(uSession, appId, accessKey, url, setting), nil
+func NewTTSApp(uSession string, setting *TTSSetting) (TTSApp, error) {
+	if factory, ok := ttsProviders[setting.Provider]; ok {
+		return factory(uSession, setting), nil
 	}
 	return nil, NoFactory
 }

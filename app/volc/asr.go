@@ -87,12 +87,12 @@ type VcASRApp struct {
 }
 
 // NewVcASRApp 构造一个新的ASR App
-func NewVcASRApp(uSession, appId, accessKey, resourceId, url string, setting *app.ASRSetting) app.ASRApp {
+func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 	asr := &VcASRApp{
-		appId:      appId,
-		accessKey:  accessKey,
-		resourceId: resourceId,
-		url:        url,
+		appId:      setting.AppID,
+		accessKey:  setting.AccessKey,
+		resourceId: setting.ResourceId,
+		url:        setting.Url,
 		setting:    setting,
 		seq:        1,
 		uSession:   uSession,

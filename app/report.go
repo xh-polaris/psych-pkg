@@ -14,6 +14,14 @@ type ( // ReportApp 是报告分析大模型应用
 		Close() error
 	}
 
+	ReportSetting struct {
+		Id        string `json:"id"`
+		Provider  string `json:"provider"`
+		Url       string `json:"url"`
+		AppId     string `json:"appId"`
+		AccessKey string `json:"accessKey"`
+	}
+
 	// Report 分析报表
 	Report struct {
 		Items ReportItem `json:"items"`
@@ -31,7 +39,7 @@ type ( // ReportApp 是报告分析大模型应用
 )
 
 // reportFactory ReportApp的构造函数类型
-type reportFactory func(appId, appKey string) ReportApp
+type reportFactory func(uSession string, setting *ReportSetting) ReportApp
 
 // reportProviders ReportApp的构造函数
 var reportProviders = make(map[string]reportFactory)
@@ -42,9 +50,9 @@ func ReportRegister(name string, factory reportFactory) {
 }
 
 // NewReportApp 构造ReportApp的工厂方法
-func NewReportApp(provider, appId string, appKey string) (ReportApp, error) {
-	if factory, ok := reportProviders[provider]; ok {
-		return factory(appId, appKey), nil
+func NewReportApp(uSession string, setting *ReportSetting) (ReportApp, error) {
+	if factory, ok := reportProviders[setting.Provider]; ok {
+		return factory(uSession, setting), nil
 	}
 	return nil, NoFactory
 }

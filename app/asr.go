@@ -21,6 +21,12 @@ type (
 		Close() error
 	}
 	ASRSetting struct {
+		Id         string `json:"id"`
+		Provider   string `json:"provider"`
+		Url        string `json:"url"`
+		AppID      string `json:"app_id"`
+		AccessKey  string `json:"access_key"`
+		ResourceId string `json:"resource_id"`
 		Format     string `json:"format"`      // 音频容器 (volc)pcm(pcm_s16le) / wav(pcm_s16le) / ogg
 		Codec      string `json:"codec"`       // 编码方式 (volc)raw / opus，默认为 raw(pcm)
 		Rate       int    `json:"rate"`        // 采样频率 (volc)默认为 16000，目前只支持16000
@@ -34,7 +40,7 @@ type (
 )
 
 // asrFactory ASRApp的构造函数类型
-type asrFactory func(uSession, appKey, accessKey, resourceId, url string, setting *ASRSetting) ASRApp
+type asrFactory func(uSession string, setting *ASRSetting) ASRApp
 
 // asrProviders ASRApp的构造函数
 var asrProviders = make(map[string]asrFactory)
@@ -45,9 +51,9 @@ func ASRRegister(name string, factory asrFactory) {
 }
 
 // NewASRApp 构造ASRApp的工厂方法
-func NewASRApp(provider, uSession, appKey, accessKey, resourceId, url string, setting *ASRSetting) (ASRApp, error) {
-	if factory, ok := asrProviders[provider]; ok {
-		return factory(uSession, appKey, accessKey, resourceId, url, setting), nil
+func NewASRApp(session string, setting *ASRSetting) (ASRApp, error) {
+	if factory, ok := asrProviders[setting.Provider]; ok {
+		return factory(session, setting), nil
 	}
 	return nil, NoFactory
 }

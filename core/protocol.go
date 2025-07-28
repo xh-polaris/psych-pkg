@@ -75,6 +75,7 @@ type (
 
 	// Config 配置消息
 	Config struct {
+		Id           string       `json:"id"`         // 配置id
 		ModelName    string       `json:"model_name"` // 模型名称
 		ModelView    string       `json:"model_view"` // 模型外观路径
 		ChatConfig   ChatConfig   `json:"chat_config"`
@@ -97,7 +98,7 @@ type (
 	ASRConfig struct {
 		Id         string `json:"id"`
 		Format     string `json:"format"`      // 音频容器格式
-		Codec      string `json:"codec"`       // 编码方式i
+		Codec      string `json:"codec"`       // 编码方式
 		Rate       int    `json:"rate"`        // 采样频率
 		Bits       int    `json:"bits"`        // 比特率
 		Channels   int    `json:"channels"`    // 声道数
@@ -108,7 +109,7 @@ type (
 	TTSConfig struct {
 		Id           string  `json:"id"`
 		Format       string  `json:"format"`        // 音频容器格式
-		Codec        string  `json:"codec"`         // 编码方式i
+		Codec        string  `json:"codec"`         // 编码方式
 		Rate         int     `json:"rate"`          // 采样频率
 		Bits         int     `json:"bits"`          // 比特率
 		Channels     int     `json:"channels"`      // 声道数

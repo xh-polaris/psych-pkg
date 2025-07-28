@@ -21,6 +21,14 @@ type (
 		Close() error
 	}
 
+	ChatSetting struct {
+		Id        string `json:"id"`
+		Provider  string `json:"provider"`
+		Url       string `json:"url"`
+		AppId     string `json:"appId"`
+		AccessKey string `json:"accessKey"`
+	}
+
 	// ChatAppScanner 用于获取流式输出
 	ChatAppScanner interface {
 		// Next 获取下一个输出
@@ -44,7 +52,7 @@ type (
 )
 
 // chatFactory ChatApp的构造函数类型
-type chatFactory func(uSession, appId, apiKey string) ChatApp
+type chatFactory func(uSession string, setting *ChatSetting) ChatApp
 
 // chatProviders ChatApp的构造函数
 var chatProviders = make(map[string]chatFactory)
@@ -55,9 +63,9 @@ func ChatRegister(name string, factory chatFactory) {
 }
 
 // NewChatApp 构造ChatApp的工厂方法
-func NewChatApp(provider, uSession, appId, apiKey string) (ChatApp, error) {
-	if factory, ok := chatProviders[provider]; ok {
-		return factory(uSession, appId, apiKey), nil
+func NewChatApp(uSession string, setting *ChatSetting) (ChatApp, error) {
+	if factory, ok := chatProviders[setting.Provider]; ok {
+		return factory(uSession, setting), nil
 	}
 	return nil, NoFactory
 }

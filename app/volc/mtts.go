@@ -42,11 +42,11 @@ type VcMTTSApp struct {
 }
 
 // NewVcMTTSApp 创建一个大模型TTS App
-func NewVcMTTSApp(uSession, appId, accessKey, url string, setting *app.TTSSetting) app.TTSApp {
+func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 	tts := &VcMTTSApp{
-		appId:     appId,
-		accessKey: accessKey,
-		url:       url,
+		appId:     setting.AppID,
+		accessKey: setting.AccessKey,
+		url:       setting.Url,
 		setting:   setting,
 		uSession:  uSession,
 	}

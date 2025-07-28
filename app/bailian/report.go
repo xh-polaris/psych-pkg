@@ -27,16 +27,18 @@ type BLReportApp struct {
 	appId     string
 	accessKey string
 	url       string
+	uSession  string
 	header    http.Header
 	body      map[string]any
 }
 
 // NewBLReportApp 创建一个百炼报告分析模型应用实例
-func NewBLReportApp(appId string, accessKey string) app.ReportApp {
+func NewBLReportApp(uSession string, setting *app.ReportSetting) app.ReportApp {
 	report := &BLReportApp{
-		appId:     appId,
-		accessKey: accessKey,
-		url:       fmt.Sprintf(baseUrl, appId),
+		appId:     setting.AppId,
+		accessKey: setting.AccessKey,
+		url:       fmt.Sprintf(setting.Url, setting.AppId),
+		uSession:  uSession,
 		header:    http.Header{},
 		body:      make(map[string]any),
 	}
@@ -44,7 +46,7 @@ func NewBLReportApp(appId string, accessKey string) app.ReportApp {
 	report.body["input"] = make(map[string]string)
 	report.body["parameters"] = map[string]any{}
 	// 设置请求头,其中X-DashScope-SSE设置为enable，表示开启流式响应
-	report.header.Set("Authorization", "Bearer "+accessKey)
+	report.header.Set("Authorization", "Bearer "+setting.AccessKey)
 	report.header.Set("Content-Type", "application/json")
 	return report
 }

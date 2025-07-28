@@ -56,11 +56,11 @@ type VcTTSApp struct {
 }
 
 // NewVcTTSApp 构造一个新的
-func NewVcTTSApp(uSession, appId, accessKey, url string, setting *app.TTSSetting) app.TTSApp {
+func NewVcTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 	tts := &VcTTSApp{
-		appId:     appId,
-		accessKey: accessKey,
-		url:       url,
+		appId:     setting.AppID,
+		accessKey: setting.AccessKey,
+		url:       setting.Url,
 		seq:       1,
 		uSession:  uSession,
 		dSession:  util.NewUID(),
