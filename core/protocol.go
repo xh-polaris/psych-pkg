@@ -28,6 +28,12 @@ var (
 )
 
 var (
+	RModelText  RType = 1 // 模型文本响应
+	RModelAudio RType = 2 // 模型音频响应
+	RUserText   RType = 3 // 用户文本响应
+)
+
+var (
 	Version int8 = 1
 	GZIP    int8 = 1
 	JSON    int8 = 1
@@ -42,7 +48,8 @@ type (
 	MType int8
 	// CType 命令类型
 	CType int8
-
+	// RType 响应类型
+	RType int8
 	// Message 单条消息
 	Message struct {
 		Type      MType     `json:"type"`      // 消息类型
@@ -114,12 +121,17 @@ type (
 
 	// Cmd 命名消息
 	Cmd struct {
-		Command CType  `json:"command"` // 命令类型
-		Content string `json:"content"` // 命令内容
+		ID      uint  `json:"id"`      // 命令编号, 自0开始递增, 客户端维护
+		Command CType `json:"command"` // 命令类型
+		Content any   `json:"content"` // 命令内容
 	}
 
 	// Resp 响应消息
-	Resp struct{}
+	Resp struct {
+		ID      uint  `json:"id"`
+		Type    RType `json:"type"`
+		Content any   `json:"content"`
+	}
 
 	// Err 错误消息
 	Err struct {
