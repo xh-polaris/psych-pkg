@@ -6,12 +6,26 @@ package app
 
 import "context"
 
+var (
+	FirstASR byte = 0   // 标识开始
+	LastASR  byte = 255 // 标识结束
+)
+
+// IsFirstASR 判断是否是开始包
+func IsFirstASR(data []byte) bool {
+	return len(data) == 1 && data[0] == FirstASR
+}
+
+// IsLastASR 判断是否是结束包
+func IsLastASR(data []byte) bool {
+	return len(data) == 1 && data[0] == LastASR
+}
+
 type (
 	// ASRApp 是通用语音识别
+	// 如果ASR应用不支持一个长连接来实现有间隔的多轮识别, 则需在ASR内部维护链接的刷新
 	// 如果存在应用层面的握手过程需要由ASR内部实现
 	ASRApp interface {
-		// Dial 建立ws连接
-		Dial(ctx context.Context) error
 		// Send 发送音频流
 		// 标识结束的音频流是一个全为1的字节
 		Send(ctx context.Context, bytes []byte) error

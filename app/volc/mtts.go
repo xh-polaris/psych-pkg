@@ -54,23 +54,23 @@ func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 	return tts
 }
 
-// Dial 建立ws连接
-func (app *VcMTTSApp) Dial(ctx context.Context) (err error) {
-	app.dialOnce.Do(func() {
-		app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
+// dial 建立ws连接
+func (tts *VcMTTSApp) dial(ctx context.Context) (err error) {
+	tts.dialOnce.Do(func() {
+		tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
 	})
 	return err
 }
 
-// Start 应用层协议握手
-func (app *VcMTTSApp) Start() (err error) {
-	app.startOnce.Do(func() {
-		if err = app.startConnection(); err != nil {
+// start 应用层协议握手
+func (tts *VcMTTSApp) start() (err error) {
+	tts.startOnce.Do(func() {
+		if err = tts.startConnection(); err != nil {
 			return
 		}
-		setting := app.setting
+		setting := tts.setting
 		namespace := setting.Namespace
-		app.params = &TTSReqParams{
+		tts.params = &TTSReqParams{
 			Speaker: setting.Speaker,
 			AudioParams: &AudioParams{
 				Format:     setting.AudioParams.Format,
@@ -84,7 +84,7 @@ func (app *VcMTTSApp) Start() (err error) {
 				"disable_markdown_filter": "true", // 过滤markdown
 			},
 		}
-		if err = app.startTTSSession(namespace, app.params); err != nil {
+		if err = tts.startTTSSession(namespace, tts.params); err != nil {
 			return
 		}
 	})
@@ -92,14 +92,23 @@ func (app *VcMTTSApp) Start() (err error) {
 }
 
 // Send 发送请求
-func (app *VcMTTSApp) Send(ctx context.Context, text string) (err error) {
-	return app.sendTTSMessage(text)
+func (tts *VcMTTSApp) Send(ctx context.Context, text string) (err error) {
+	if app.IsFirstTTS(text) || app.IsLastTTS(text) { // 这里不需要刷新链接, 所以跳过标识内容
+		return
+	}
+	if err = tts.dial(ctx); err != nil {
+		return
+	}
+	if err = tts.start(); err != nil {
+		return
+	}
+	return tts.sendTTSMessage(text)
 }
 
 // Receive 接收请求
-func (app *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
+func (tts *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
 	for {
-		msg, err := app.receiveMessage()
+		msg, err := tts.receiveMessage()
 		if err != nil {
 			return nil, err
 		}
@@ -121,17 +130,17 @@ func (app *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
 }
 
 // Close 关闭连接释放资源
-func (app *VcMTTSApp) Close() (err error) {
-	if app.wsx == nil {
+func (tts *VcMTTSApp) Close() (err error) {
+	if tts.wsx == nil {
 		return nil
 	}
-	if err = app.finishSession(); err != nil {
+	if err = tts.finishSession(); err != nil {
 		return err
 	}
-	if err = app.finishConnection(); err != nil {
+	if err = tts.finishConnection(); err != nil {
 		return err
 	}
-	return app.wsx.Close()
+	return tts.wsx.Close()
 }
 
 // protocol 是火山tts的二进制帧协议
@@ -147,18 +156,18 @@ func init() {
 }
 
 // buildHTTPHeader 构造请求头
-func (app *VcMTTSApp) buildHTTPHeader() {
-	app.header = http.Header{
-		"X-Tt-Logid":        []string{app.uSession},
-		"X-Api-Resource-Id": []string{app.setting.ResourceId},
-		"X-Api-Access-Key":  []string{app.accessKey},
-		"X-Api-App-Key":     []string{app.appId},
-		"X-Api-Connect-Id":  []string{app.uSession},
+func (tts *VcMTTSApp) buildHTTPHeader() {
+	tts.header = http.Header{
+		"X-Tt-Logid":        []string{tts.uSession},
+		"X-Api-Resource-Id": []string{tts.setting.ResourceId},
+		"X-Api-Access-Key":  []string{tts.accessKey},
+		"X-Api-App-Key":     []string{tts.appId},
+		"X-Api-Connect-Id":  []string{tts.uSession},
 	}
 }
 
 // startConnection 建立application级别的连接
-func (app *VcMTTSApp) startConnection() (err error) {
+func (tts *VcMTTSApp) startConnection() (err error) {
 	var msg *Message
 	var frame []byte
 	if msg, err = NewMessage(MsgTypeFullClient, MsgTypeFlagWithEvent); err != nil {
@@ -169,13 +178,13 @@ func (app *VcMTTSApp) startConnection() (err error) {
 	if frame, err = protocol.Marshal(msg); err != nil {
 		return fmt.Errorf("[volc mtts] marshal StartConnection request message: %w", err)
 	}
-	if err = app.wsx.WriteBytes(frame); err != nil {
+	if err = tts.wsx.WriteBytes(frame); err != nil {
 		logx.Error("[volc mtts] send StartConnection request: %w", err)
 		return err
 	}
 
 	// Read ConnectionStarted message.
-	mt, frame, err := app.wsx.Read()
+	mt, frame, err := tts.wsx.Read()
 	if err != nil {
 		logx.Error("[volc mtts] Read StartConnection request: %w", err)
 		return err
@@ -198,7 +207,7 @@ func (app *VcMTTSApp) startConnection() (err error) {
 }
 
 // startTTSSession 开启TTSSession, 应该是用于标识一段上下文
-func (app *VcMTTSApp) startTTSSession(namespace string, params *TTSReqParams) (err error) {
+func (tts *VcMTTSApp) startTTSSession(namespace string, params *TTSReqParams) (err error) {
 	req := TTSRequest{
 		Event:     int32(EventStartSession),
 		Namespace: namespace,
@@ -214,7 +223,7 @@ func (app *VcMTTSApp) startTTSSession(namespace string, params *TTSReqParams) (e
 		return fmt.Errorf("[volc mtts] create StartSession request message: %w", err)
 	}
 	msg.Event = req.Event
-	msg.SessionID = app.uSession
+	msg.SessionID = tts.uSession
 	msg.Payload = payload
 
 	frame, err := protocol.Marshal(msg)
@@ -222,12 +231,12 @@ func (app *VcMTTSApp) startTTSSession(namespace string, params *TTSReqParams) (e
 		return fmt.Errorf("[volc mtts] marshal StartSession request message: %w", err)
 	}
 
-	if err = app.wsx.WriteBytes(frame); err != nil {
+	if err = tts.wsx.WriteBytes(frame); err != nil {
 		return fmt.Errorf("send StartSession request: %w", err)
 	}
 
 	// Read SessionStarted message.
-	mt, frame, err := app.wsx.Read()
+	mt, frame, err := tts.wsx.Read()
 	if err != nil {
 		return fmt.Errorf("[volc mtts] read SessionStarted response: %w", err)
 	}
@@ -250,11 +259,11 @@ func (app *VcMTTSApp) startTTSSession(namespace string, params *TTSReqParams) (e
 }
 
 // sendTTSMessage 发送一条tts消息
-func (app *VcMTTSApp) sendTTSMessage(text string) error {
+func (tts *VcMTTSApp) sendTTSMessage(text string) error {
 	req := TTSRequest{
 		Event:     int32(EventTaskRequest),
-		Namespace: app.setting.Namespace,
-		ReqParams: app.params,
+		Namespace: tts.setting.Namespace,
+		ReqParams: tts.params,
 	}
 	req.ReqParams.Text = text
 	payload, err := json.Marshal(&req)
@@ -267,7 +276,7 @@ func (app *VcMTTSApp) sendTTSMessage(text string) error {
 		return fmt.Errorf("[volc mtts] create TaskRequest request message: %w", err)
 	}
 	msg.Event = req.Event
-	msg.SessionID = app.uSession
+	msg.SessionID = tts.uSession
 	msg.Payload = payload
 
 	frame, err := protocol.Marshal(msg)
@@ -275,15 +284,15 @@ func (app *VcMTTSApp) sendTTSMessage(text string) error {
 		return fmt.Errorf("[volc mtts] marshal TaskRequest request message: %w", err)
 	}
 
-	if err = app.wsx.WriteBytes(frame); err != nil {
+	if err = tts.wsx.WriteBytes(frame); err != nil {
 		return fmt.Errorf("[volc mtts] send TaskRequest request: %w", err)
 	}
 	return nil
 }
 
 // receiveMessage 从ws中接受消息
-func (app *VcMTTSApp) receiveMessage() (*Message, error) {
-	mt, frame, err := app.wsx.Read()
+func (tts *VcMTTSApp) receiveMessage() (*Message, error) {
+	mt, frame, err := tts.wsx.Read()
 	if err != nil {
 		return nil, err
 	}
@@ -302,13 +311,13 @@ func (app *VcMTTSApp) receiveMessage() (*Message, error) {
 }
 
 // finishSession 关闭session
-func (app *VcMTTSApp) finishSession() error {
+func (tts *VcMTTSApp) finishSession() error {
 	msg, err := NewMessage(MsgTypeFullClient, MsgTypeFlagWithEvent)
 	if err != nil {
 		return fmt.Errorf("[volc mtts] create FinishSession request message: %w", err)
 	}
 	msg.Event = int32(EventFinishSession)
-	msg.SessionID = app.uSession
+	msg.SessionID = tts.uSession
 	msg.Payload = []byte("{}")
 
 	frame, err := protocol.Marshal(msg)
@@ -316,14 +325,14 @@ func (app *VcMTTSApp) finishSession() error {
 		return fmt.Errorf("[volc mtts] marshal FinishSession request message: %w", err)
 	}
 
-	if err = app.wsx.WriteBytes(frame); err != nil {
+	if err = tts.wsx.WriteBytes(frame); err != nil {
 		return fmt.Errorf("[volc mtts] send FinishSession request: %w", err)
 	}
 	return nil
 }
 
 // finishConnection 关闭连接
-func (app *VcMTTSApp) finishConnection() error {
+func (tts *VcMTTSApp) finishConnection() error {
 	msg, err := NewMessage(MsgTypeFullClient, MsgTypeFlagWithEvent)
 	if err != nil {
 		return fmt.Errorf("[volc mtts] create FinishConnection request message: %w", err)
@@ -336,11 +345,11 @@ func (app *VcMTTSApp) finishConnection() error {
 		return fmt.Errorf("[volc mtts] marshal FinishConnection request message: %w", err)
 	}
 
-	if err = app.wsx.WriteBytes(frame); err != nil {
+	if err = tts.wsx.WriteBytes(frame); err != nil {
 		return fmt.Errorf("[volc mtts] send FinishConnection request: %w", err)
 	}
 
-	mt, frame, err := app.wsx.Read()
+	mt, frame, err := tts.wsx.Read()
 	if err != nil {
 		return fmt.Errorf("[volc mtts] read ConnectionFinished response: %w", err)
 	}
