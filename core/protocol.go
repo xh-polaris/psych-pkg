@@ -122,9 +122,10 @@ type (
 
 	// Cmd 命名消息
 	Cmd struct {
-		ID      uint  `json:"id"`      // 命令编号, 自0开始递增, 客户端维护
-		Command CType `json:"command"` // 命令类型
-		Content any   `json:"content"` // 命令内容
+		ID      uint   `json:"id"`      // 命令编号, 自0开始递增, 客户端维护
+		Role    string `json:"role"`    // 身份
+		Command CType  `json:"command"` // 命令类型
+		Content any    `json:"content"` // 命令内容
 	}
 
 	// Resp 响应消息
