@@ -37,7 +37,7 @@ var (
 )
 
 // VcTTSApp 是火山引擎的常规文字转音频(非大模型)
-// 每一次文本到音频的转换需要使用一个链接, 但这个过程对于前端来说是被封装了的.
+// 每一次文本到音频的转换需要使用一个链接
 type VcTTSApp struct {
 	wsx *wsx.WSClient
 
@@ -71,27 +71,26 @@ func NewVcTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 
 }
 
-// Dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
-func (app *VcTTSApp) Dial(ctx context.Context) (err error) {
-	app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
+// dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
+func (tts *VcTTSApp) dial(ctx context.Context) (err error) {
+	tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
 	return err
 }
 
-// Start 完成应用层协议握手
-func (app *VcTTSApp) Start() (err error) {
-	// 大部分参数配置均已在外部完成, 这里是为了和其他的TTSApp操作对齐以及设置请求标识ID
-	app.setting.User.Uid = app.dSession
-	app.setting.Request.ReqID = app.dSession
-	return nil
-}
-
 // Send 发送待转换文字
-func (app *VcTTSApp) Send(ctx context.Context, text string) (err error) {
-	var input []byte
+func (tts *VcTTSApp) Send(ctx context.Context, text string) (err error) {
+	if app.IsFirstTTS(text) { // 新一次, 重新建立链接
+		if err = tts.dial(ctx); err != nil {
+			return
+		}
+	} else if app.IsLastTTS(text) {
+		return
+	}
 
-	app.setting.Request.Text = text
+	var input []byte
+	tts.setting.Request.Text = text
 	// 序列化输入
-	if input, err = json.Marshal(app.setting); err != nil {
+	if input, err = json.Marshal(tts.setting); err != nil {
 		return err
 	}
 	// gzip压缩输入
@@ -102,16 +101,16 @@ func (app *VcTTSApp) Send(ctx context.Context, text string) (err error) {
 	// 构建请求头, 依次是默认头, 有效长度, 有效负载
 	payloadSize := util.IntToBytes(len(input))
 	clientRequest := util.BuildBytes(defaultHeader, payloadSize, input)
-	if err = app.wsx.WriteBytes(clientRequest); err != nil {
+	if err = tts.wsx.WriteBytes(clientRequest); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Receive 获取转换后音频流
-func (app *VcTTSApp) Receive(ctx context.Context) (audio []byte, err error) {
+func (tts *VcTTSApp) Receive(ctx context.Context) (audio []byte, err error) {
 	// 获取原始响应
-	if audio, err = app.wsx.ReadBytes(); err != nil {
+	if audio, err = tts.wsx.ReadBytes(); err != nil {
 		logx.Error("[volc tts] Receive: raw audio: ", string(audio))
 		return nil, err
 	}
@@ -124,9 +123,9 @@ func (app *VcTTSApp) Receive(ctx context.Context) (audio []byte, err error) {
 }
 
 // Close 关闭连接释放资源
-func (app *VcTTSApp) Close() (err error) {
-	if app.wsx != nil {
-		return app.wsx.Close()
+func (tts *VcTTSApp) Close() (err error) {
+	if tts.wsx != nil {
+		return tts.wsx.Close()
 	}
 	return
 }
@@ -169,13 +168,13 @@ func parseAudio(res []byte) (audio []byte, isLast bool, err error) {
 }
 
 // buildHTTPHeader 构造鉴权请求头
-func (app *VcTTSApp) buildHTTPHeader() {
-	app.header = http.Header{"Authorization": []string{fmt.Sprintf("Bearer;%s", app.accessKey)}}
+func (tts *VcTTSApp) buildHTTPHeader() {
+	tts.header = http.Header{"Authorization": []string{fmt.Sprintf("Bearer;%s", tts.accessKey)}}
 }
 
-func (app *VcTTSApp) buildSetting(setting *app.TTSSetting) {
+func (tts *VcTTSApp) buildSetting(setting *app.TTSSetting) {
 	set := &volcTTSSetting{}
-	set.App.AppID, set.App.Token, set.App.Cluster = app.appId, app.accessKey, setting.ResourceId
+	set.App.AppID, set.App.Token, set.App.Cluster = tts.appId, tts.accessKey, setting.ResourceId
 	set.Audio.Language, set.Audio.VoiceType, set.Audio.Encoding = setting.AudioParams.Lang, setting.Speaker, setting.AudioParams.Format
 	set.Audio.Rate, set.Audio.SpeedRate = setting.AudioParams.Bit, float32(100+setting.AudioParams.SpeechRate)/100
 	set.Audio.VolumeRate, set.Audio.PitchRate = float32(100+setting.AudioParams.LoudnessRate)/100, 1.0
@@ -184,6 +183,8 @@ func (app *VcTTSApp) buildSetting(setting *app.TTSSetting) {
 	} else {
 		set.Request.Operation = optQuery
 	}
+	tts.setting.User.Uid = tts.dSession
+	tts.setting.Request.ReqID = tts.dSession
 }
 
 type volcTTSSetting struct {

@@ -6,12 +6,26 @@ package app
 
 import "context"
 
+var (
+	FirstTTS = "start"
+	LastTTS  = "end"
+)
+
+// IsFirstTTS 判断是否是开始包
+func IsFirstTTS(data string) bool {
+	return data == FirstTTS
+}
+
+// IsLastTTS 判断是否是结束包
+func IsLastTTS(data string) bool {
+	return data == LastTTS
+}
+
 type (
 	// TTSApp 是语音合成大模型
+	// 如果不支持长连接实现有间隔的多轮合成, 则需在TTS内部维护链接刷新
 	// 如果存在应用层面的握手过程需要由TTS内部实现
 	TTSApp interface {
-		// Dial 建立ws连接
-		Dial(ctx context.Context) error
 		// Send 发送文字请求
 		Send(ctx context.Context, texts string) error
 		// Receive 接受音频流响应

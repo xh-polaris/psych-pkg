@@ -48,9 +48,7 @@ const (
 )
 
 var (
-	// 标识最后一个音频包
-	lastOne           byte = 255
-	DefaultASRSetting      = &app.ASRSetting{
+	DefaultASRSetting = &app.ASRSetting{
 		Format:     "pcm",
 		Codec:      "raw",
 		Rate:       16000,
@@ -66,7 +64,7 @@ var (
 )
 
 // VcASRApp 是火山引擎的大模型语音识别
-// 一次识别用一个连接, 前端和后端建立一个长连接, 使用ASR时再建立和ASR的短连接, 使用后关闭
+// 前后端一个长连接, 每轮对话, 收到first后建立新的asr链接
 // 双向流式会增量返回, 流式则是最后一个包或15s后返回, 单包时长100~200ms最优
 type VcASRApp struct {
 	wsx *wsx.WSClient
@@ -102,21 +100,21 @@ func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 	return asr
 }
 
-// Dial 建立ws链接
-func (app *VcASRApp) Dial(ctx context.Context) (err error) {
-	app.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), app.url, app.header)
+// dial 建立ws链接
+func (asr *VcASRApp) dial(ctx context.Context) (err error) {
+	asr.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), asr.url, asr.header)
 	return err
 }
 
-// Start 完成应用层协议握手
-func (app *VcASRApp) Start() (err error) {
+// start 完成应用层协议握手
+func (asr *VcASRApp) start() (err error) {
 	var payload []byte
-	setting := app.setting
+	setting := asr.setting
 	// 协商配置参数
 	req := map[string]any{
 		// 用户参数
 		"user": map[string]any{
-			"uid": app.uSession,
+			"uid": asr.uSession,
 		},
 		// 音频参数
 		"audio": map[string]any{
@@ -142,23 +140,32 @@ func (app *VcASRApp) Start() (err error) {
 	}
 	// 组装full client request, full client request = header + sequence + payload
 	header := getHeader(FullClientRequest, PosSequence, JSON, GZIP, byte(0))
-	seq := util.IntToBytes(app.seq)
+	seq := util.IntToBytes(asr.seq)
 	size := util.IntToBytes(len(payload))
 	fullClientRequest := util.BuildBytes(header, seq, size, payload)
-	if err = app.wsx.WriteBytes(fullClientRequest); err != nil {
+	if err = asr.wsx.WriteBytes(fullClientRequest); err != nil {
 		return err
 	}
 	return
 }
 
 // Send 发送音频流
-func (app *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
+func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
+	if app.IsFirstASR(data) { // first包, 建立新链接
+		if err = asr.dial(ctx); err != nil {
+			return
+		}
+		if err = asr.start(); err != nil {
+			return
+		}
+	}
+
 	var payload, header []byte
 	ctx = util.NNCtx(ctx)
 
 	// 判断是否最后一个包, 若是则负载为空
 	header = negHeader
-	if !isLast(data) { // 不是负包则正常处理
+	if !app.IsLastASR(data) { // 不是负包则正常处理
 		header = posHeader
 		payload, err = util.GzipCompress(data)
 		if err != nil {
@@ -167,26 +174,26 @@ func (app *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	}
 
 	// 发送音频流
-	app.seq++
-	seq := util.IntToBytes(app.seq)
+	asr.seq++
+	seq := util.IntToBytes(asr.seq)
 	payloadSize := util.IntToBytes(len(payload))
 	audioOnlyRequest := util.BuildBytes(header, seq, payloadSize, payload)
-	if err = app.wsx.WriteBytes(audioOnlyRequest); err != nil {
+	if err = asr.wsx.WriteBytes(audioOnlyRequest); err != nil {
 		return err
 	}
 	return nil
 }
 
 // Receive 接受响应
-func (app *VcASRApp) Receive(ctx context.Context) (text string, err error) {
+func (asr *VcASRApp) Receive(ctx context.Context) (text string, err error) {
 	var res []byte
 	var mt int
-	if mt, res, err = app.wsx.Read(); err == nil {
+	if mt, res, err = asr.wsx.Read(); err == nil {
 		switch mt {
 		case websocket.BinaryMessage:
-			return app.receiveBytes(res)
+			return asr.receiveBytes(res)
 		case websocket.TextMessage:
-			return app.receiveText(res)
+			return asr.receiveText(res)
 		default:
 			return "", fmt.Errorf("[volc asr] Receive: invalid websocket message")
 		}
@@ -195,13 +202,13 @@ func (app *VcASRApp) Receive(ctx context.Context) (text string, err error) {
 }
 
 // receiveText 接受到文本消息, 暂无实际用途
-func (app *VcASRApp) receiveText(res []byte) (string, error) {
+func (asr *VcASRApp) receiveText(res []byte) (string, error) {
 	logx.Info("[volc asr] receiveText: ", string(res))
 	return "", nil
 }
 
 // receiveBytes 接收到字节流
-func (app *VcASRApp) receiveBytes(res []byte) (text string, err error) {
+func (asr *VcASRApp) receiveBytes(res []byte) (text string, err error) {
 	data, seq, err := parse(res)
 	// seq 小于0 表示这是最后一个包, 后续没有了, 暂时没有通过这个来中止
 	if err != nil || seq < 0 {
@@ -219,9 +226,9 @@ func (app *VcASRApp) receiveBytes(res []byte) (text string, err error) {
 }
 
 // Close 释放资源
-func (app *VcASRApp) Close() (err error) {
-	if app.wsx != nil {
-		return app.wsx.Close()
+func (asr *VcASRApp) Close() (err error) {
+	if asr.wsx != nil {
+		return asr.wsx.Close()
 	}
 	return
 }
@@ -253,13 +260,13 @@ func parse(res []byte) (data []byte, seq int, err error) {
 }
 
 // buildHTTPHeader 构造鉴权请求头
-func (app *VcASRApp) buildHTTPHeader() {
-	app.header = http.Header{
-		"X-Tt-Logid":        []string{app.dSession},
-		"X-Api-Resource-Id": []string{app.resourceId},
-		"X-Api-Access-Key":  []string{app.accessKey},
-		"X-Api-App-Key":     []string{app.appId},
-		"X-Api-Connect-Id":  []string{app.dSession},
+func (asr *VcASRApp) buildHTTPHeader() {
+	asr.header = http.Header{
+		"X-Tt-Logid":        []string{asr.dSession},
+		"X-Api-Resource-Id": []string{asr.resourceId},
+		"X-Api-Access-Key":  []string{asr.accessKey},
+		"X-Api-App-Key":     []string{asr.appId},
+		"X-Api-Connect-Id":  []string{asr.dSession},
 	}
 }
 
@@ -271,9 +278,4 @@ func getHeader(msgType, msgTypeSpecificFlags, serialMethod, compressionType, res
 	header[2] = (serialMethod << 4) | compressionType
 	header[3] = reserverData
 	return header
-}
-
-// isLast 判断是否是结束包
-func isLast(data []byte) bool {
-	return len(data) == 1 && data[0] == lastOne
 }
