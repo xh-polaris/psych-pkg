@@ -31,6 +31,8 @@ type (
 
 	// ChatAppScanner 用于获取流式输出
 	ChatAppScanner interface {
+		WithID(id string) ChatAppScanner
+		GetID() string
 		// Next 获取下一个输出
 		Next() (*ChatFrame, error)
 		Close() error

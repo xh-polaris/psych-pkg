@@ -1,13 +1,17 @@
 package core
 
-import "github.com/xh-polaris/psych-pkg/app"
+import (
+	"context"
+	"github.com/xh-polaris/psych-pkg/app"
+)
 
 // WorkFlow 工作流, 编排对话中数据流转
 type WorkFlow interface {
 	// Orchestrate 编排工作流
 	Orchestrate(*WorkFlowConfig) error
-	// Run 开始执行工作流
-	Run() (err error)
+	WithIn(in *Channel[*Cmd]) WorkFlow
+	WithContext(ctx context.Context) WorkFlow
+	WithClose(close chan struct{}) WorkFlow
 }
 
 type WorkFlowConfig struct {

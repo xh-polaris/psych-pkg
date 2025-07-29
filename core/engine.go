@@ -7,6 +7,12 @@ import "sync"
 type Engine interface {
 	// Run 启动Engine
 	Run()
+	// Read 读取未解码消息
+	Read()
+	// Write 写入编码后消息
+	Write([]byte)
+	// MWrite 写入未编码消息
+	MWrite(MType, any)
 	// Close 释放Engine资源
 	Close() (err error)
 	// Session 获取会话标识

@@ -25,6 +25,7 @@ var (
 	CUserText     CType = 1 // 用户文字输入
 	CUserAudio    CType = 2 // 用户音频输入, 直接作为输入, 也会返回识别结果给前端
 	CUserAudioASR CType = 3 // 用户音频输入, 用于识别
+	CModelText    CType = 4 // 模型文字输入, 用于转语音
 )
 
 var (
