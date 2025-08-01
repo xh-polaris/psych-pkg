@@ -68,10 +68,10 @@ type (
 	// Auth 认证消息
 	// 若用户在其他途径登录过来, 则使用Already类型并在authID传入用户ID, verifyCode中传入JWT, info中传入登录接口获取的额外信息
 	Auth struct {
-		AuthID     string            `json:"auth_id"`     // 认证ID, 如电话号码等
-		AuthType   int32             `json:"auth_type"`   // 校验方式, 如Phone
-		VerifyCode string            `json:"verify_code"` // 校验令牌, 如验证码
-		Info       map[string]string `json:"info"`        // 额外信息
+		AuthID     string         `json:"auth_id"`     // 认证ID, 如电话号码等
+		AuthType   int32          `json:"auth_type"`   // 校验方式, 如Phone
+		VerifyCode string         `json:"verify_code"` // 校验令牌, 如验证码
+		Info       map[string]any `json:"info"`        // 额外信息
 	}
 
 	// Config 配置消息
