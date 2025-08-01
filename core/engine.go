@@ -8,7 +8,7 @@ type Engine interface {
 	// Run 启动Engine
 	Run()
 	// Read 读取未解码消息
-	Read()
+	Read() (mt int, data []byte, err error)
 	// Write 写入编码后消息
 	Write([]byte)
 	// MWrite 写入未编码消息
