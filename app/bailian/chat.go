@@ -106,6 +106,7 @@ var _ = (app.ChatAppScanner)(nil)
 
 // BLChatAppScanner 是百炼对话调用的流式响应
 type BLChatAppScanner struct {
+	id         uint // 对应cmd id
 	app        *BLChatApp
 	readCloser io.ReadCloser
 	scanner    *bufio.Scanner
@@ -163,6 +164,17 @@ func (s *BLChatAppScanner) Next() (*app.ChatFrame, error) {
 	}
 	// 没有更多内容
 	return nil, app.End
+}
+
+// GetID 获取id
+func (s *BLChatAppScanner) GetID() uint {
+	return s.id
+}
+
+// WithID 设置ID
+func (s *BLChatAppScanner) WithID(id uint) app.ChatAppScanner {
+	s.id = id
+	return s
 }
 
 // Close 释放资源
