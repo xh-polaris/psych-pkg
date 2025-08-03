@@ -1,6 +1,6 @@
 module github.com/xh-polaris/psych-pkg
 
-go 1.22.12
+go 1.23.0
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -14,7 +14,7 @@ require (
 	github.com/zeromicro/go-zero v1.8.3
 	go.opentelemetry.io/contrib/propagators/b3 v1.35.0
 	go.opentelemetry.io/otel v1.35.0
-	golang.org/x/net v0.35.0
+	golang.org/x/net v0.38.0
 )
 
 require (
@@ -64,8 +64,8 @@ require (
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240711142825-46eb208f015d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
