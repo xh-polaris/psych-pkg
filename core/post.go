@@ -47,8 +47,8 @@ func GetHisRedis(rs *redis.Redis) *HisRedis {
 	return rsInstance
 }
 
-// add 将对话记录添加到队列尾部
-func (r *HisRedis) add(session string, entry *HisEntry) (err error) {
+// Add 将对话记录添加到队列尾部
+func (r *HisRedis) Add(session string, entry *HisEntry) (err error) {
 	// 序列化
 	var data []byte
 	if data, err = json.Marshal(entry); err != nil {

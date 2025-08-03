@@ -24,7 +24,7 @@ type ( // ReportApp 是报告分析大模型应用
 
 	// Report 分析报表
 	Report struct {
-		Items ReportItem `json:"items"`
+		Items []*ReportItem `json:"items"`
 	}
 
 	// ReportItem 报表分析结果单元
