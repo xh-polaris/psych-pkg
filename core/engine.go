@@ -45,10 +45,6 @@ func (c *Channel[T]) Send(msg T) {
 	case <-c.close:
 		c.once.Do(func() { close(c.C) })
 	case c.C <- msg:
-		select {
-		case <-c.close:
-			c.once.Do(func() { close(c.C) })
-		}
 	}
 }
 
