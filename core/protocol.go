@@ -241,6 +241,7 @@ var (
 	DecodeMsgErr    []byte // 解码消息错误
 	EncodeMsgErr    []byte // 编码消息错误
 	UnSupportErr    []byte // 不支持的消息类型
+	EndErr          []byte // 因错误结束
 )
 
 // init 初始化一些全局变量
@@ -256,6 +257,7 @@ func init() {
 		panic(fmt.Errorf("[protocol] DecodeMsgErr MMarshal error %s", err))
 	}
 
+	// 编码消息错误
 	if m, err = EncodeMErr(-1002, "encode message error"); err != nil {
 		panic(fmt.Errorf("[protocol] EncodeMsgErr EncodeMErr error %s", err))
 	}
@@ -269,5 +271,13 @@ func init() {
 	}
 	if UnSupportErr, err = MMarshal(m, GZIP, JSON); err != nil {
 		panic(fmt.Errorf("[protocol] UnSupportErr Marshal error %s", err))
+	}
+
+	// 因错误而结束
+	if m, err = EncodeMErr(-1004, "end with unexpected error"); err != nil {
+		panic(fmt.Errorf("[protocol] EndErr EncodeMErr error %s", err))
+	}
+	if EndErr, err = MMarshal(m, GZIP, JSON); err != nil {
+		panic(fmt.Errorf("[protocol] EndErr Marshal error %s", err))
 	}
 }
