@@ -176,9 +176,9 @@ func (tts *VcTTSApp) buildSetting(setting *app.TTSSetting) {
 	set := &volcTTSSetting{}
 	set.App.AppID, set.App.Token, set.App.Cluster = tts.appId, tts.accessKey, setting.ResourceId
 	set.Audio.Language, set.Audio.VoiceType, set.Audio.Encoding = setting.AudioParams.Lang, setting.Speaker, setting.AudioParams.Format
-	set.Audio.Rate, set.Audio.SpeedRate = setting.AudioParams.Bit, float32(100+setting.AudioParams.SpeechRate)/100
+	set.Audio.Rate, set.Audio.SpeedRate = setting.AudioParams.Bits, float32(100+setting.AudioParams.SpeechRate)/100
 	set.Audio.VolumeRate, set.Audio.PitchRate = float32(100+setting.AudioParams.LoudnessRate)/100, 1.0
-	if setting.Stream {
+	if setting.AudioParams.ResultType == "single" {
 		set.Request.Operation = optSubmit
 	} else {
 		set.Request.Operation = optQuery

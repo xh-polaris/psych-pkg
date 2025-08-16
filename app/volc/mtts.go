@@ -76,7 +76,7 @@ func (tts *VcMTTSApp) start() (err error) {
 				Format:     setting.AudioParams.Format,
 				SampleRate: setting.AudioParams.Rate,
 				SpeechRate: setting.AudioParams.SpeechRate,
-				BitRate:    setting.AudioParams.Bit,
+				BitRate:    setting.AudioParams.Bits,
 				Volume:     setting.AudioParams.LoudnessRate,
 				Lang:       setting.AudioParams.Lang,
 			},
