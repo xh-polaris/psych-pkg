@@ -11,6 +11,7 @@ type WorkFlow interface {
 	Orchestrate(*WorkFlowConfig) error
 	// Close 关闭工作流
 	Close() error
+	WithEngine(e Engine) WorkFlow
 	WithIn(in *Channel[*Cmd]) WorkFlow
 	WithContext(ctx context.Context) WorkFlow
 	WithClose(close chan struct{}) WorkFlow
