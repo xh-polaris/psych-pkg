@@ -60,8 +60,11 @@ func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 func (tts *VcMTTSApp) dial(ctx context.Context) (err error) {
 	tts.dialOnce.Do(func() {
 		tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
+		if err != nil {
+			tts.dialOnce = sync.Once{} // 建立连接失败重置once允许再次创建
+		}
+		tts.ini <- struct{}{}
 	})
-	tts.ini <- struct{}{}
 	return err
 }
 

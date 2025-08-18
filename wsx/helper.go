@@ -95,7 +95,7 @@ func NewWSClientWithDial(ctx context.Context, url string, header http.Header) (*
 	// 连接失败若有响应, 打印错误日志
 	if r != nil {
 		if body, parseErr := io.ReadAll(r.Body); parseErr == nil {
-			logx.Error("[WSClient] parse conn resp body:", string(body))
+			logx.Error("[WSClient] parse conn resp body:%s", string(body))
 		}
 	}
 	return nil, err
