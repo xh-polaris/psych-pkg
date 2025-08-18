@@ -192,7 +192,7 @@ func (asr *VcASRApp) Receive(ctx context.Context) (text string, err error) {
 	var res []byte
 	var mt int
 	if asr.wsx == nil { // 避免初始化前监听wsx导致空指针错误
-		asr.ini <- struct{}{}
+		<-asr.ini
 	}
 	if mt, res, err = asr.wsx.Read(); err == nil {
 		switch mt {

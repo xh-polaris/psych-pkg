@@ -8,7 +8,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/xh-polaris/psych-pkg/app"
 	"github.com/xh-polaris/psych-pkg/httpx"
 	"github.com/xh-polaris/psych-pkg/util"
@@ -47,7 +46,7 @@ func NewBLChatApp(uSession string, setting *app.ChatSetting) app.ChatApp {
 	chat := &BLChatApp{
 		appId:     setting.AppId,
 		accessKey: setting.AccessKey,
-		url:       fmt.Sprintf(setting.Url, setting.Url),
+		url:       setting.Url,
 		header:    http.Header{},
 		body:      make(map[string]any),
 		uSession:  uSession,
