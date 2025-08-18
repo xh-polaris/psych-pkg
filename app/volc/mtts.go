@@ -27,6 +27,7 @@ type VcMTTSApp struct {
 	startOnce sync.Once
 	// ws 连接
 	wsx *wsx.WSClient
+	ini chan struct{}
 
 	appId     string
 	accessKey string
@@ -44,6 +45,7 @@ type VcMTTSApp struct {
 // NewVcMTTSApp 创建一个大模型TTS App
 func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 	tts := &VcMTTSApp{
+		ini:       make(chan struct{}),
 		appId:     setting.AppID,
 		accessKey: setting.AccessKey,
 		url:       setting.Url,
@@ -59,6 +61,7 @@ func (tts *VcMTTSApp) dial(ctx context.Context) (err error) {
 	tts.dialOnce.Do(func() {
 		tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
 	})
+	tts.ini <- struct{}{}
 	return err
 }
 
@@ -108,6 +111,9 @@ func (tts *VcMTTSApp) Send(ctx context.Context, text string) (err error) {
 // Receive 接收请求
 func (tts *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
 	for {
+		if tts.wsx == nil {
+			<-tts.ini
+		}
 		msg, err := tts.receiveMessage()
 		if err != nil {
 			return nil, err

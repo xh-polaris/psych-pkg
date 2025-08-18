@@ -38,6 +38,7 @@ var (
 
 // VcTTSApp 是火山引擎的常规文字转音频(非大模型)
 // 每一次文本到音频的转换需要使用一个链接
+// 这里Receive在每次连接更替时都会出现一个NormalErr然后被忽略, 感觉可能不是很优雅, 但结合使用场景来说能用, 一般都是获取到上次一次完整的响应后才会开始新的
 type VcTTSApp struct {
 	wsx *wsx.WSClient
 
@@ -73,6 +74,9 @@ func NewVcTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 
 // dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
 func (tts *VcTTSApp) dial(ctx context.Context) (err error) {
+	if tts.wsx != nil {
+		_ = tts.wsx.Close() // 关闭先前的
+	}
 	tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
 	return err
 }
@@ -111,6 +115,9 @@ func (tts *VcTTSApp) Send(ctx context.Context, text string) (err error) {
 func (tts *VcTTSApp) Receive(ctx context.Context) (audio []byte, err error) {
 	// 获取原始响应
 	if audio, err = tts.wsx.ReadBytes(); err != nil {
+		if wsx.IsNormal(err) { // normal异常说明本次连接结束, 开始了一轮新的, 因此直接返回
+			return nil, nil
+		}
 		logx.Error("[volc tts] Receive: raw audio: ", string(audio))
 		return nil, err
 	}
