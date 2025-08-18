@@ -102,21 +102,31 @@ func (ws *HZWSClient) WriteJSON(obj any) (err error) {
 }
 
 // Ping 写入心跳消息
-func (ws *HZWSClient) Ping() error {
+func (ws *HZWSClient) Ping(data []byte) error {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	return ws.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(DefaultTimeout))
+	return ws.conn.WriteControl(websocket.PingMessage, data, time.Now().Add(DefaultTimeout))
 }
 
 // Pong 写入Pong消息
-func (ws *HZWSClient) Pong() error {
+func (ws *HZWSClient) Pong(data []byte) error {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	return ws.conn.WriteControl(websocket.PongMessage, nil, time.Now().Add(DefaultTimeout))
+	return ws.conn.WriteControl(websocket.PongMessage, data, time.Now().Add(DefaultTimeout))
 }
 
 func (ws *HZWSClient) SetPingHandler(h func(appData string) error) {
 	ws.conn.SetPingHandler(h)
+}
+
+func (ws *HZWSClient) ControlClose(data []byte) error {
+	ws.mu.Lock()
+	defer ws.mu.Unlock()
+	return ws.conn.WriteControl(websocket.CloseMessage, data, time.Now().Add(DefaultTimeout))
+}
+
+func (ws *HZWSClient) SetCloseHandler(h func(code int, text string) error) {
+	ws.conn.SetCloseHandler(h)
 }
 
 // Close 关闭连接
