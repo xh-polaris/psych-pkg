@@ -68,6 +68,7 @@ var (
 // 双向流式会增量返回, 流式则是最后一个包或15s后返回, 单包时长100~200ms最优
 type VcASRApp struct {
 	wsx *wsx.WSClient
+	ini chan struct{} // 同步机制, 确保Receive在wsx初始化后
 
 	// 鉴权与配置
 	appId      string
@@ -87,6 +88,7 @@ type VcASRApp struct {
 // NewVcASRApp 构造一个新的ASR App
 func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 	asr := &VcASRApp{
+		ini:        make(chan struct{}),
 		appId:      setting.AppID,
 		accessKey:  setting.AccessKey,
 		resourceId: setting.ResourceId,
@@ -103,6 +105,7 @@ func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 // dial 建立ws链接
 func (asr *VcASRApp) dial(ctx context.Context) (err error) {
 	asr.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), asr.url, asr.header)
+	asr.ini <- struct{}{} // 写入消息, 允许Receive开始read
 	return err
 }
 
@@ -188,6 +191,9 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 func (asr *VcASRApp) Receive(ctx context.Context) (text string, err error) {
 	var res []byte
 	var mt int
+	if asr.wsx == nil { // 避免初始化前监听wsx导致空指针错误
+		asr.ini <- struct{}{}
+	}
 	if mt, res, err = asr.wsx.Read(); err == nil {
 		switch mt {
 		case websocket.BinaryMessage:
@@ -230,6 +236,7 @@ func (asr *VcASRApp) Close() (err error) {
 	if asr.wsx != nil {
 		return asr.wsx.Close()
 	}
+	close(asr.ini)
 	return
 }
 
