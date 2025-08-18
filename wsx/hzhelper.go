@@ -115,6 +115,10 @@ func (ws *HZWSClient) Pong() error {
 	return ws.conn.WriteControl(websocket.PongMessage, nil, time.Now().Add(DefaultTimeout))
 }
 
+func (ws *HZWSClient) SetPingHandler(h func(appData string) error) {
+	ws.conn.SetPingHandler(h)
+}
+
 // Close 关闭连接
 func (ws *HZWSClient) Close() error {
 	if !ws.closed {
