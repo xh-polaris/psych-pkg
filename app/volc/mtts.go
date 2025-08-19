@@ -61,7 +61,7 @@ func (tts *VcMTTSApp) dial(ctx context.Context) (err error) {
 	if tts.dialOnce.CompareAndSwap(false, true) {
 		tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
 		tts.ini <- struct{}{}
-		if err == nil {
+		if err != nil {
 			tts.dialOnce.CompareAndSwap(true, false) // 成功建立连接后则不再次建立连接
 		}
 	}
@@ -123,7 +123,6 @@ func (tts *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
 		}
 		switch msg.MsgType {
 		case MsgTypeFullServerResponse: // 收到服务器完整响应
-			logx.Info("[volc mtts] Receive text message (event=%s, session_id=%s): %s", msg.EventType, msg.SessionID, msg.Payload)
 			switch msg.EventType {
 			case EventType_ConnectionStarted: // connection建立成功
 				logx.Info("[volc mtts] Receive Connection success")
