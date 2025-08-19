@@ -66,6 +66,7 @@ var (
 // VcASRApp 是火山引擎的大模型语音识别
 // 前后端一个长连接, 每轮对话, 收到first后建立新的asr链接
 // 双向流式会增量返回, 流式则是最后一个包或15s后返回, 单包时长100~200ms最优
+// TODO 修改为用心跳协议维持连接, 而不是每一轮一个
 type VcASRApp struct {
 	wsx *wsx.WSClient
 	ini chan struct{} // 同步机制, 确保Receive在wsx初始化后

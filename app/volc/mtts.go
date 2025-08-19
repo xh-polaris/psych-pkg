@@ -11,6 +11,7 @@ import (
 	"github.com/xh-polaris/psych-pkg/wsx"
 	"net/http"
 	"sync"
+	"sync/atomic"
 )
 
 var _ app.TTSApp = (*VcMTTSApp)(nil)
@@ -23,7 +24,7 @@ func init() {
 // 默认双向流式, 一次对话只需要建立一个链接即可使用到最后.
 // 由于火山的文档写的有点语焉不详, 示例代码又没有明确的说明, 所以有些代码看着很冗余也只能先留着
 type VcMTTSApp struct {
-	dialOnce  sync.Once
+	dialOnce  atomic.Bool
 	startOnce sync.Once
 	// ws 连接
 	wsx *wsx.WSClient
@@ -58,13 +59,13 @@ func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 
 // dial 建立ws连接
 func (tts *VcMTTSApp) dial(ctx context.Context) (err error) {
-	tts.dialOnce.Do(func() {
+	if tts.dialOnce.Load() == false {
 		tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
-		if err != nil {
-			tts.dialOnce = sync.Once{} // 建立连接失败重置once允许再次创建
-		}
 		tts.ini <- struct{}{}
-	})
+		if err == nil {
+			tts.dialOnce.Store(true) // 成功建立连接后则不再次建立连接
+		}
+	}
 	return err
 }
 
@@ -116,6 +117,9 @@ func (tts *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
 	for {
 		if tts.wsx == nil {
 			<-tts.ini
+			if tts.wsx == nil {
+				return nil, nil
+			}
 		}
 		msg, err := tts.receiveMessage()
 		if err != nil {
