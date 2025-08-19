@@ -193,6 +193,9 @@ func (asr *VcASRApp) Receive(ctx context.Context) (text string, err error) {
 	var mt int
 	if asr.wsx == nil { // 避免初始化前监听wsx导致空指针错误
 		<-asr.ini
+		if asr.wsx == nil { // 出现这种情况多半是因为wsx还没建立就关闭了, 需要再检测一次避免空指针问题
+			return "", nil
+		}
 	}
 	if mt, res, err = asr.wsx.Read(); err == nil {
 		switch mt {
