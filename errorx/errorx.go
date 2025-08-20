@@ -18,6 +18,12 @@ const unknowCode = 999
 // - 业务处理链路的末端使用Errorx, PostProcess处理后给出用户友好的响应
 // - 预定义一些Errorx作为常量
 // - 除却末端的Errorx外, 其余的error照常处理
+
+type IErrorx interface {
+	GetCode() int
+	GetMsg() string
+}
+
 type Errorx struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
@@ -33,6 +39,16 @@ func New(code int, msg string) *Errorx {
 // Error 实现了error接口, 返回错误字符串
 func (e Errorx) Error() string {
 	return fmt.Sprintf("code=%d, msg=%s", e.Code, e.Msg)
+}
+
+// GetCode 获取Code
+func (e Errorx) GetCode() int {
+	return e.Code
+}
+
+// GetMsg 获取Msg
+func (e Errorx) GetMsg() string {
+	return e.Msg
 }
 
 // EndE 的作用是记录错误日志, 并返回一个与err相同的Errorx

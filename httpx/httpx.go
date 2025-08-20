@@ -32,12 +32,11 @@ func PostProcess(ctx context.Context, c *app.RequestContext, req, resp any, err 
 		c.JSON(hertz.StatusOK, response)
 	}
 
-	var ex errorx.Errorx
-	if errors.As(err, &ex) { // errorx错误
+	if ex, ok := err.(errorx.IErrorx); ok { // errorx错误
 		StatusCode := hertz.StatusOK
 		c.JSON(StatusCode, &errorx.Errorx{
-			Code: ex.Code,
-			Msg:  ex.Msg,
+			Code: ex.GetCode(),
+			Msg:  ex.GetMsg(),
 		})
 	} else { // 常规错误, 状态码500
 		logx.CtxError(ctx, "internal error, err=%s", err.Error())
