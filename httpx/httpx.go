@@ -30,6 +30,7 @@ func PostProcess(ctx context.Context, c *app.RequestContext, req, resp any, err 
 	if err == nil {
 		response := makeResponse(resp)
 		c.JSON(hertz.StatusOK, response)
+		return
 	}
 
 	if ex, ok := err.(errorx.IErrorx); ok { // errorx错误
