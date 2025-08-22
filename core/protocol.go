@@ -68,21 +68,21 @@ type (
 	// Auth 认证消息
 	// 若用户在其他途径登录过来, 则使用Already类型并在authID传入用户ID, verifyCode中传入JWT, info中传入登录接口获取的额外信息
 	Auth struct {
-		AuthID     string         `json:"auth_id"`     // 认证ID, 如电话号码等
-		AuthType   int32          `json:"auth_type"`   // 校验方式, 如Phone
-		VerifyCode string         `json:"verify_code"` // 校验令牌, 如验证码
-		Info       map[string]any `json:"info"`        // 额外信息
+		AuthID     string         `json:"authId"`     // 认证ID, 如电话号码等
+		AuthType   int32          `json:"authType"`   // 校验方式, 如Phone
+		VerifyCode string         `json:"verifyCode"` // 校验令牌, 如验证码
+		Info       map[string]any `json:"info"`       // 额外信息
 	}
 
 	// Config 配置消息
 	Config struct {
-		Id           string       `json:"id"`         // 配置id
-		ModelName    string       `json:"model_name"` // 模型名称
-		ModelView    string       `json:"model_view"` // 模型外观路径
-		ChatConfig   ChatConfig   `json:"chat_config"`
-		ASRConfig    ASRConfig    `json:"asr_config"`
-		TTSConfig    TTSConfig    `json:"tts_config"`
-		ReportConfig ReportConfig `json:"report_config"`
+		Id           string       `json:"id"`        // 配置id
+		ModelName    string       `json:"modelName"` // 模型名称
+		ModelView    string       `json:"modelView"` // 模型外观路径
+		ChatConfig   ChatConfig   `json:"chatConfig"`
+		ASRConfig    ASRConfig    `json:"asrConfig"`
+		TTSConfig    TTSConfig    `json:"ttsConfig"`
+		ReportConfig ReportConfig `json:"reportConfig"`
 	}
 
 	// ChatConfig 对话配置
@@ -98,27 +98,27 @@ type (
 	// ASRConfig ASR配置
 	ASRConfig struct {
 		Id         string `json:"id"`
-		Format     string `json:"format"`      // 音频容器格式
-		Codec      string `json:"codec"`       // 编码方式
-		Rate       int    `json:"rate"`        // 采样频率
-		Bits       int    `json:"bits"`        // 比特率
-		Channels   int    `json:"channels"`    // 声道数
-		ResultType string `json:"result_type"` // 返回方式, full为全量, single为增量
+		Format     string `json:"format"`     // 音频容器格式
+		Codec      string `json:"codec"`      // 编码方式
+		Rate       int    `json:"rate"`       // 采样频率
+		Bits       int    `json:"bits"`       // 比特率
+		Channels   int    `json:"channels"`   // 声道数
+		ResultType string `json:"resultType"` // 返回方式, full为全量, single为增量
 	}
 
 	// TTSConfig TTS配置
 	TTSConfig struct {
 		Id           string  `json:"id"`
-		Format       string  `json:"format"`        // 音频容器格式
-		Codec        string  `json:"codec"`         // 编码方式
-		Rate         int     `json:"rate"`          // 采样频率
-		Bits         int     `json:"bits"`          // 比特率
-		Channels     int     `json:"channels"`      // 声道数
-		ResultType   string  `json:"result_type"`   // 返回方式, full为全量, single为增量
-		SpeechRate   float32 `json:"speech_rate"`   // 语速, 服务端配置
-		LoudnessRate float32 `json:"loudness_rate"` // 音量, 服务端配置
-		PitchRate    float32 `json:"pitch_rate"`    // 音高, 服务端配置
-		Lang         string  `json:"lang"`          // 语种, 服务端配置
+		Format       string  `json:"format"`       // 音频容器格式
+		Codec        string  `json:"codec"`        // 编码方式
+		Rate         int     `json:"rate"`         // 采样频率
+		Bits         int     `json:"bits"`         // 比特率
+		Channels     int     `json:"channels"`     // 声道数
+		ResultType   string  `json:"resultType"`   // 返回方式, full为全量, single为增量
+		SpeechRate   float32 `json:"speechRate"`   // 语速, 服务端配置
+		LoudnessRate float32 `json:"loudnessRate"` // 音量, 服务端配置
+		PitchRate    float32 `json:"pitchRate"`    // 音高, 服务端配置
+		Lang         string  `json:"lang"`         // 语种, 服务端配置
 	}
 
 	// Cmd 命名消息

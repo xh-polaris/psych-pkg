@@ -106,8 +106,8 @@ func (c *HttpClient) Get(url string, headers http.Header, body any) (resp map[st
 }
 
 // PostWithHeader 非流式Post, 返回请求头
-func (c *HttpClient) PostWithHeader(url string, headers http.Header, body any) (resp map[string]any, err error) {
-	return c.Req("POST", url, headers, body)
+func (c *HttpClient) PostWithHeader(url string, headers http.Header, body any) (header http.Header, resp map[string]any, err error) {
+	return c.ReqWithHeader("POST", url, headers, body)
 }
 
 // Post 非流式Post
