@@ -142,6 +142,11 @@ type (
 		Code    int    `json:"code"`
 		Message string `json:"message"`
 	}
+
+	// Ping 心跳
+	Ping struct {
+		Data string `json:"ping;omitempty"`
+	}
 )
 
 // MMarshal 序列化消息
@@ -204,6 +209,8 @@ func DecodeMessage(m *Message) (payload any, err error) {
 		return decodeMessage[Resp](m)
 	case MErr:
 		return decodeMessage[Err](m)
+	case MPing:
+		return decodeMessage[Ping](m)
 	}
 	return nil, unimplement
 }
