@@ -13,6 +13,7 @@ import (
 var unimplement = errors.New("unimplement")
 
 var (
+	MPing   MType = -2 // Ping
 	MErr    MType = -1 // 错误消息
 	MMeta   MType = 0  // 协议元数据
 	MAuth   MType = 1  // 认证消息
