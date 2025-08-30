@@ -2,7 +2,7 @@
 // Licensed under the GNU Affero General Public License v3 (AGPL-3.0).
 // license that can be found in the LICENSE file.
 
-package volc
+package tts
 
 import (
 	"context"
