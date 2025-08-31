@@ -68,17 +68,15 @@ func (asr *VcASRApp) start() (err error) {
 	// 协商配置参数
 	req := NewFullClientRequest(asr.uSession, setting.Format, setting.Codec, setting.Rate, setting.Bits,
 		setting.Channels, setting.ModelName, true, setting.EnablePunc, setting.EnableDdc, false, false)
-	// 序列化为字节
 	if payload, err = json.Marshal(req); err != nil {
 		return err
 	}
-	// gzip压缩
 	if payload, err = util.GzipCompress(payload); err != nil {
 		return err
 	}
 	// 组装full client request, full client request = header + sequence + payload
-	seq := util.IntToBytes(asr.seq)
-	size := util.IntToBytes(len(payload))
+	seq := util.I2BigEndBytes(asr.seq)
+	size := util.I2BigEndBytes(len(payload))
 	fullClientRequest := util.BuildBytes(PosDefaultHeader, seq, size, payload)
 	if err = asr.wsx.WriteBytes(fullClientRequest); err != nil {
 		return err
@@ -110,9 +108,9 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	}
 
 	// 发送音频流
-	seq := util.IntToBytes(asr.seq)
-	payloadSize := util.IntToBytes(len(payload))
-	audioOnlyRequest := util.BuildBytes(header, seq, payloadSize, payload)
+	seq := util.I2BigEndBytes(asr.seq)
+	size := util.I2BigEndBytes(len(payload))
+	audioOnlyRequest := util.BuildBytes(header, seq, size, payload)
 	if err = asr.wsx.WriteBytes(audioOnlyRequest); err != nil {
 		return err
 	}
@@ -166,6 +164,6 @@ func (asr *VcASRApp) buildHTTPHeader() {
 		"X-Api-Resource-Id": []string{asr.setting.ResourceId},
 		"X-Api-Access-Key":  []string{asr.setting.AccessKey},
 		"X-Api-App-Key":     []string{asr.setting.AppID},
-		"X-Api-Connect-Id":  []string{asr.dSession},
+		"X-Api-Request-Id":  []string{asr.dSession},
 	}
 }

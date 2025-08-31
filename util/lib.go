@@ -55,8 +55,8 @@ func GzipDecompress(src []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// IntToBytes 将整数变成字节数组
-func IntToBytes(n int) []byte {
+// I2BigEndBytes 将整数变成字节数组
+func I2BigEndBytes(n int) []byte {
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint32(b, uint32(n))
 	return b

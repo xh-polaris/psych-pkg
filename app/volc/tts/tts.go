@@ -103,7 +103,7 @@ func (tts *VcTTSApp) Send(ctx context.Context, text string) (err error) {
 	}
 
 	// 构建请求头, 依次是默认头, 有效长度, 有效负载
-	payloadSize := util.IntToBytes(len(input))
+	payloadSize := util.I2BigEndBytes(len(input))
 	clientRequest := util.BuildBytes(defaultHeader, payloadSize, input)
 	if err = tts.wsx.WriteBytes(clientRequest); err != nil {
 		return err
