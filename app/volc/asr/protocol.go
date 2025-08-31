@@ -127,6 +127,7 @@ type RequestMeta struct {
 	EnableDDC       bool       `json:"enable_ddc,omitempty"`
 	ShowUtterances  bool       `json:"show_utterances"`
 	EnableNonstream bool       `json:"enable_nonstream"`
+	ResultType      string     `json:"result_type,omitempty"`
 	Corpus          CorpusMeta `json:"corpus,omitempty"`
 }
 
@@ -138,7 +139,7 @@ type RequestPayload struct {
 }
 
 // NewFullClientRequest 客户端请求
-func NewFullClientRequest(uid, format, codec string, rate, bits, channel int, name string, itn, punc, ddc, utterances, stream bool) *RequestPayload {
+func NewFullClientRequest(uid, format, codec string, rate, bits, channel int, name string, itn, punc, ddc bool, resultType string, utterances, stream bool) *RequestPayload {
 	return &RequestPayload{
 		User: UserMeta{
 			Uid: uid,
@@ -157,6 +158,7 @@ func NewFullClientRequest(uid, format, codec string, rate, bits, channel int, na
 			EnableDDC:       ddc,
 			ShowUtterances:  utterances,
 			EnableNonstream: stream,
+			ResultType:      resultType,
 		},
 	}
 }

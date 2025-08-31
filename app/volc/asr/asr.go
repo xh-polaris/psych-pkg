@@ -67,7 +67,7 @@ func (asr *VcASRApp) start() (err error) {
 	setting := asr.setting
 	// 协商配置参数
 	req := NewFullClientRequest(asr.uSession, setting.Format, setting.Codec, setting.Rate, setting.Bits,
-		setting.Channels, setting.ModelName, true, setting.EnablePunc, setting.EnableDdc, false, false)
+		setting.Channels, setting.ModelName, true, setting.EnablePunc, setting.EnableDdc, setting.ResultType, false, false)
 	if payload, err = json.Marshal(req); err != nil {
 		return err
 	}
@@ -95,6 +95,7 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 
 	var payload, header []byte
 	ctx = util.NNCtx(ctx)
+	asr.seq++
 
 	header = AudioPosDefaultHeader
 	if app.IsLastASR(data) { // 判断是否最后一个包, 若是则负载为空, 序号为负
@@ -114,7 +115,6 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	if err = asr.wsx.WriteBytes(audioOnlyRequest); err != nil {
 		return err
 	}
-	asr.seq++
 	return nil
 }
 
