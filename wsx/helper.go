@@ -55,7 +55,7 @@ func (ws *WSClient) classifyErr(err error) error {
 		return NormalCloseErr
 	case websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived):
 		// 为了避免内部错误被隐藏, 此处日志记录错误原因
-		logx.Error("[WSClient] close error", err)
+		logx.Error("[WSClient] close error%s", err)
 		ws.closed = true
 		return AbnormalCloseErr
 	default:

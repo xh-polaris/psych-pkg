@@ -43,7 +43,7 @@ type VcASRApp struct {
 // NewVcASRApp 构造一个新的ASR App
 func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 	asr := &VcASRApp{
-		ini:      make(chan struct{}),
+		ini:      make(chan struct{}, 1),
 		setting:  setting,
 		seq:      1,
 		uSession: uSession,
