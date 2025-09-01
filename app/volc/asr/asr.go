@@ -7,13 +7,14 @@ package asr
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/websocket"
 	"github.com/xh-polaris/psych-pkg/app"
 	"github.com/xh-polaris/psych-pkg/util"
 	"github.com/xh-polaris/psych-pkg/util/logx"
 	"github.com/xh-polaris/psych-pkg/wsx"
 	"golang.org/x/net/context"
-	"net/http"
 )
 
 var _ app.ASRApp = (*VcASRApp)(nil)
@@ -33,7 +34,9 @@ type VcASRApp struct {
 	setting *app.ASRSetting
 
 	// seq 发送的消息序列号
-	seq int
+	seq    int
+	rvcSeq int
+	last   int
 	// session
 	uSession, dSession string
 	// header 是请求头, 携带鉴权信息
@@ -46,6 +49,8 @@ func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 		ini:      make(chan struct{}, 1),
 		setting:  setting,
 		seq:      1,
+		rvcSeq:   1,
+		last:     0,
 		uSession: uSession,
 		dSession: util.NewUID(),
 	}
@@ -100,6 +105,7 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	header = AudioPosDefaultHeader
 	if app.IsLastASR(data) { // 判断是否最后一个包, 若是则负载为空, 序号为负
 		header = AudioNegDefaultHeader
+		asr.last = asr.seq
 		asr.seq = -asr.seq
 	} else {
 		payload, err = util.GzipCompress(data)
@@ -122,7 +128,7 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 func (asr *VcASRApp) Receive(_ context.Context) (text string, err error) {
 	var msg []byte
 	var mt int
-	if asr.wsx == nil { // 避免初始化前监听wsx导致空指针错误
+	if asr.seq == 1 { // 避免初始化前监听wsx导致空指针错误
 		<-asr.ini
 		if asr.wsx == nil { // 出现这种情况多半是因为wsx还没建立就关闭了, 需要再检测一次避免空指针问题
 			return "", nil
@@ -132,6 +138,10 @@ func (asr *VcASRApp) Receive(_ context.Context) (text string, err error) {
 		switch mt {
 		case websocket.BinaryMessage:
 			resp := ParseResponse(msg)
+			asr.rvcSeq++
+			if asr.rvcSeq == asr.last {
+				asr.seq = 1 // 重新使得receive等待
+			}
 			return resp.PayloadMsg.Result.Text, nil
 		case websocket.TextMessage:
 			return asr.receiveText(msg)
