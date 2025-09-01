@@ -61,7 +61,9 @@ func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 // dial 建立ws链接
 func (asr *VcASRApp) dial(ctx context.Context) (err error) {
 	asr.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), asr.setting.Url, asr.header)
-	asr.seq = 1           // 重置seq
+	asr.seq = 1 // 重置seq
+	asr.rvcSeq = 1
+	asr.last = 0
 	asr.ini <- struct{}{} // 写入消息, 允许Receive开始read
 	return err
 }
@@ -141,6 +143,8 @@ func (asr *VcASRApp) Receive(_ context.Context) (text string, err error) {
 			asr.rvcSeq++
 			if asr.rvcSeq == asr.last {
 				asr.seq = 1 // 重新使得receive等待
+				asr.rvcSeq = 1
+				asr.last = 0
 			}
 			return resp.PayloadMsg.Result.Text, nil
 		case websocket.TextMessage:
