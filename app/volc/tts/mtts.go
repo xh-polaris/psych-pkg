@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/xh-polaris/psych-pkg/app"
-	"github.com/xh-polaris/psych-pkg/util"
-	"github.com/xh-polaris/psych-pkg/util/logx"
-	"github.com/xh-polaris/psych-pkg/wsx"
 	"net/http"
 	"sync/atomic"
+
+	"github.com/gorilla/websocket"
+	"github.com/xh-polaris/psych-pkg/app"
+	"github.com/xh-polaris/psych-pkg/util/logx"
+	"github.com/xh-polaris/psych-pkg/wsx"
 )
 
 var _ app.TTSApp = (*VcMTTSApp)(nil)
@@ -23,15 +23,13 @@ func init() {
 // 默认双向流式websocketV3, 一次对话只需要建立一个链接即可使用到最后.
 // 每次转换用一个session, 一个链接可以复用多个session, 可以使用CancelSession结束当前session(未实现)
 type VcMTTSApp struct {
-	dialOnce  atomic.Bool
-	startOnce atomic.Bool
 	// ws 连接
 	wsx *wsx.WSClient
-	ini chan struct{}
 
 	appId     string
 	accessKey string
 	url       string
+	active    atomic.Bool
 	setting   *app.TTSSetting
 	params    *TTSReqParams
 
@@ -45,7 +43,6 @@ type VcMTTSApp struct {
 // NewVcMTTSApp 创建一个大模型TTS App
 func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 	tts := &VcMTTSApp{
-		ini:       make(chan struct{}),
 		appId:     setting.AppID,
 		accessKey: setting.AccessKey,
 		url:       setting.Url,
@@ -56,23 +53,10 @@ func NewVcMTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 	return tts
 }
 
-// dial 建立ws连接
-func (tts *VcMTTSApp) dial(ctx context.Context) (err error) {
-	if tts.dialOnce.CompareAndSwap(false, true) {
-		tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
-		tts.ini <- struct{}{}
-		if err != nil {
-			tts.dialOnce.CompareAndSwap(true, false) // 成功建立连接后则不再次建立连接
-		}
-	}
-	return err
-}
-
-// start 建立Connection
-func (tts *VcMTTSApp) start() (err error) {
-	if tts.startOnce.CompareAndSwap(false, true) {
-		if err = tts.startConnection(); err != nil { // 建立connection
-			tts.startOnce.CompareAndSwap(true, false)
+// Dial 建立ws连接
+func (tts *VcMTTSApp) Dial(ctx context.Context) (err error) {
+	if !tts.active.Load() { // 只需要建立一次连接
+		if tts.wsx, err = wsx.NewWSClientWithDial(ctx, tts.url, tts.header); err != nil {
 			return
 		}
 		setting := tts.setting // 配置tts参数
@@ -88,18 +72,13 @@ func (tts *VcMTTSApp) start() (err error) {
 			},
 			Additions: "{\"disable_markdown_filter\": \"true\"}", // 过滤markdown
 		}
+		tts.active.Store(true)
 	}
 	return
 }
 
 // Send 发送请求
 func (tts *VcMTTSApp) Send(ctx context.Context, text string) (err error) {
-	if err = tts.dial(ctx); err != nil { // 建立ws连接
-		return
-	}
-	if err = tts.start(); err != nil { // 建立connection
-		return
-	}
 	if app.IsFirstTTS(text) { // 首包, 建立session
 		return tts.startSession()
 	} else if app.IsLastTTS(text) { // 尾包, 结束session
@@ -109,37 +88,31 @@ func (tts *VcMTTSApp) Send(ctx context.Context, text string) (err error) {
 }
 
 // Receive 接收请求
-func (tts *VcMTTSApp) Receive(ctx context.Context) ([]byte, error) {
-	for {
-		if tts.wsx == nil {
-			<-tts.ini
-			if tts.wsx == nil {
-				return nil, nil
-			}
+func (tts *VcMTTSApp) Receive(ctx context.Context) ([]byte, bool, error) {
+	msg, err := tts.receiveMessage()
+	if err != nil {
+		return nil, true, err
+	}
+	switch msg.MsgType {
+	case MsgTypeFullServerResponse: // 收到服务器完整响应
+		switch msg.EventType {
+		case EventType_ConnectionStarted: // connection建立成功
+			logx.Info("[volc mtts] Receive Connection success")
+		case EventType_SessionStarted: // session 建立成功
+			logx.Info("[volc mtts] Receive Session success")
+		case EventType_SessionFinished: // session 结束
+			logx.Info("[volc mtts] Receive Session Finish success")
+			return nil, true, nil
+		case EventType_ConnectionFinished: // connection结束
+			logx.Info("[volc mtts] Receive Connection Finish success")
 		}
-		msg, err := tts.receiveMessage()
-		if err != nil {
-			return nil, err
-		}
-		switch msg.MsgType {
-		case MsgTypeFullServerResponse: // 收到服务器完整响应
-			switch msg.EventType {
-			case EventType_ConnectionStarted: // connection建立成功
-				logx.Info("[volc mtts] Receive Connection success")
-			case EventType_SessionStarted: // session 建立成功
-				logx.Info("[volc mtts] Receive Session success")
-			case EventType_SessionFinished: // session 结束
-				logx.Info("[volc mtts] Receive Session Finish success")
-			case EventType_ConnectionFinished: // connection结束
-				logx.Info("[volc mtts] Receive Connection Finish success")
-			}
-		case MsgTypeAudioOnlyServer: // 接收到音频响应
-			return msg.Payload, nil
-		case MsgTypeError: // 接收到错误
-			return nil, fmt.Errorf("[volc mtts] Receive Error: (code=%d): %s", msg.ErrorCode, msg.Payload)
-		default:
-			return nil, fmt.Errorf("[volc mtts] Received unexpected message type: %s", msg.MsgType)
-		}
+		return nil, false, err
+	case MsgTypeAudioOnlyServer: // 接收到音频响应
+		return msg.Payload, false, nil
+	case MsgTypeError: // 接收到错误
+		return nil, true, fmt.Errorf("[volc mtts] Receive Error: (code=%d): %s", msg.ErrorCode, msg.Payload)
+	default:
+		return nil, false, fmt.Errorf("[volc mtts] Received unexpected message type: %s", msg.MsgType)
 	}
 }
 

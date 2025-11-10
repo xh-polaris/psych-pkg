@@ -26,10 +26,12 @@ type (
 	// 如果不支持长连接实现有间隔的多轮合成, 则需在TTS内部维护链接刷新
 	// 如果存在应用层面的握手过程需要由TTS内部实现
 	TTSApp interface {
+		// Dial 建立连接(包括配置过程)
+		Dial(ctx context.Context) error
 		// Send 发送文字请求
 		Send(ctx context.Context, texts string) error
 		// Receive 接受音频流响应
-		Receive(ctx context.Context) ([]byte, error)
+		Receive(ctx context.Context) ([]byte, bool, error)
 		// Close 断开连接, 释放资源
 		Close() error
 	}

@@ -10,11 +10,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/xh-polaris/psych-pkg/app"
 	"github.com/xh-polaris/psych-pkg/util"
 	"github.com/xh-polaris/psych-pkg/util/logx"
 	"github.com/xh-polaris/psych-pkg/wsx"
-	"net/http"
 )
 
 var _ app.TTSApp = (*VcTTSApp)(nil)
@@ -50,8 +51,8 @@ type VcTTSApp struct {
 
 	// seq 发送的消息序列号
 	seq int
-	// uSession 是一次对话的记录, 由上层传入, dSession是一轮转换的记录, 由自己管理
-	uSession, dSession string
+	// uSession 是一次对话的记录
+	uSession string
 	// header 是请求头, 携带鉴权信息
 	header http.Header
 }
@@ -64,7 +65,6 @@ func NewVcTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 		url:       setting.Url,
 		seq:       1,
 		uSession:  uSession,
-		dSession:  util.NewUID(),
 	}
 	tts.buildHTTPHeader()
 	tts.buildSetting(setting)
@@ -72,11 +72,8 @@ func NewVcTTSApp(uSession string, setting *app.TTSSetting) app.TTSApp {
 
 }
 
-// dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
-func (tts *VcTTSApp) dial(ctx context.Context) (err error) {
-	if tts.wsx != nil {
-		_ = tts.wsx.Close() // 关闭先前的
-	}
+// Dial 建立ws连接, 只有第一次调用建立链接, 后续调用不会建立, 以确保
+func (tts *VcTTSApp) Dial(ctx context.Context) (err error) {
 	tts.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), tts.url, tts.header)
 	return err
 }
@@ -84,9 +81,7 @@ func (tts *VcTTSApp) dial(ctx context.Context) (err error) {
 // Send 发送待转换文字
 func (tts *VcTTSApp) Send(ctx context.Context, text string) (err error) {
 	if app.IsFirstTTS(text) { // 新一次, 重新建立链接
-		if err = tts.dial(ctx); err != nil {
-			return
-		}
+		return
 	} else if app.IsLastTTS(text) {
 		return
 	}
@@ -112,21 +107,21 @@ func (tts *VcTTSApp) Send(ctx context.Context, text string) (err error) {
 }
 
 // Receive 获取转换后音频流
-func (tts *VcTTSApp) Receive(ctx context.Context) (audio []byte, err error) {
+func (tts *VcTTSApp) Receive(ctx context.Context) (audio []byte, last bool, err error) {
 	// 获取原始响应
 	if audio, err = tts.wsx.ReadBytes(); err != nil {
 		if wsx.IsNormal(err) { // normal异常说明本次连接结束, 开始了一轮新的, 因此直接返回
-			return nil, nil
+			return nil, true, nil
 		}
 		logx.Error("[volc tts] Receive: raw audio: ", string(audio))
-		return nil, err
+		return nil, true, err
 	}
 	// 解析音频, 此处暂时没有考虑返回是否为最后一个包
-	if audio, _, err = parseAudio(audio); err != nil {
+	if audio, last, err = parseAudio(audio); err != nil {
 		logx.Error("[volc tts] Receive: parse audio: ", err)
-		return nil, err
+		return nil, true, err
 	}
-	return audio, nil
+	return audio, last, nil
 }
 
 // Close 关闭连接释放资源
@@ -190,8 +185,8 @@ func (tts *VcTTSApp) buildSetting(setting *app.TTSSetting) {
 	} else {
 		set.Request.Operation = optQuery
 	}
-	tts.setting.User.Uid = tts.dSession
-	tts.setting.Request.ReqID = tts.dSession
+	tts.setting.User.Uid = tts.uSession
+	tts.setting.Request.ReqID = tts.uSession
 }
 
 type volcTTSSetting struct {
