@@ -28,15 +28,12 @@ func init() {
 // 双向流式会增量返回, 流式则是最后一个包或15s后返回, 单包时长100~200ms最优
 type VcASRApp struct {
 	wsx *wsx.WSClient
-	ini chan struct{} // 同步机制, 确保Receive在wsx初始化后
 
 	// 鉴权与配置
 	setting *app.ASRSetting
 
 	// seq 发送的消息序列号
-	seq    int
-	rvcSeq int
-	last   int
+	seq int
 	// session
 	uSession, dSession string
 	// header 是请求头, 携带鉴权信息
@@ -46,11 +43,8 @@ type VcASRApp struct {
 // NewVcASRApp 构造一个新的ASR App
 func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 	asr := &VcASRApp{
-		ini:      make(chan struct{}, 1),
 		setting:  setting,
 		seq:      1,
-		rvcSeq:   1,
-		last:     0,
 		uSession: uSession,
 		dSession: util.NewUID(),
 	}
@@ -58,14 +52,14 @@ func NewVcASRApp(uSession string, setting *app.ASRSetting) app.ASRApp {
 	return asr
 }
 
-// dial 建立ws链接
-func (asr *VcASRApp) dial(ctx context.Context) (err error) {
+// Dial 建立ws链接
+func (asr *VcASRApp) Dial(ctx context.Context) (err error) {
 	asr.wsx, err = wsx.NewWSClientWithDial(util.NNCtx(ctx), asr.setting.Url, asr.header)
-	asr.seq = 1 // 重置seq
-	asr.rvcSeq = 1
-	asr.last = 0
-	asr.ini <- struct{}{} // 写入消息, 允许Receive开始read
-	return err
+	if err != nil {
+		return err
+	}
+	asr.seq = 1
+	return asr.start()
 }
 
 // start 完成应用层协议握手
@@ -93,21 +87,12 @@ func (asr *VcASRApp) start() (err error) {
 
 // Send 发送音频流
 func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
-	if app.IsFirstASR(data) { // first包, 建立新链接
-		if err = asr.dial(ctx); err != nil {
-			return
-		}
-		return asr.start()
-	}
-
 	var payload, header []byte
-	ctx = util.NNCtx(ctx)
 	asr.seq++
 
 	header = AudioPosDefaultHeader
 	if app.IsLastASR(data) { // 判断是否最后一个包, 若是则负载为空, 序号为负
 		header = AudioNegDefaultHeader
-		asr.last = asr.seq
 		asr.seq = -asr.seq
 	} else {
 		payload, err = util.GzipCompress(data)
@@ -130,22 +115,10 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 func (asr *VcASRApp) Receive(_ context.Context) (text string, err error) {
 	var msg []byte
 	var mt int
-	if asr.seq == 1 { // 避免初始化前监听wsx导致空指针错误
-		<-asr.ini
-		if asr.wsx == nil { // 出现这种情况多半是因为wsx还没建立就关闭了, 需要再检测一次避免空指针问题
-			return "", nil
-		}
-	}
 	if mt, msg, err = asr.wsx.Read(); err == nil {
 		switch mt {
 		case websocket.BinaryMessage:
 			resp := ParseResponse(msg)
-			asr.rvcSeq++
-			if asr.rvcSeq == asr.last {
-				asr.seq = 1 // 重新使得receive等待
-				asr.rvcSeq = 1
-				asr.last = 0
-			}
 			return resp.PayloadMsg.Result.Text, nil
 		case websocket.TextMessage:
 			return asr.receiveText(msg)
@@ -167,7 +140,6 @@ func (asr *VcASRApp) Close() (err error) {
 	if asr.wsx != nil {
 		return asr.wsx.Close()
 	}
-	close(asr.ini)
 	return
 }
 

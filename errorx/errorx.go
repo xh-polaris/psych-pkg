@@ -7,6 +7,7 @@ package errorx
 import (
 	"errors"
 	"fmt"
+
 	"github.com/xh-polaris/psych-pkg/util/logx"
 )
 

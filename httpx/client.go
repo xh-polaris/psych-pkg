@@ -7,11 +7,12 @@ package httpx
 import (
 	"bytes"
 	"fmt"
-	"github.com/cloudwego/hertz/pkg/common/json"
-	"github.com/xh-polaris/psych-pkg/util/logx"
 	"io"
 	"net/http"
 	"sync"
+
+	"github.com/cloudwego/hertz/pkg/common/json"
+	"github.com/xh-polaris/psych-pkg/util/logx"
 )
 
 // httpx/client 是一个简单的http客户端

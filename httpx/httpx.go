@@ -3,6 +3,9 @@ package httpx
 import (
 	"context"
 	"errors"
+	"reflect"
+	"strings"
+
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol"
 	hertz "github.com/cloudwego/hertz/pkg/protocol/consts"
@@ -11,7 +14,6 @@ import (
 	"github.com/xh-polaris/psych-pkg/util/logx"
 	"go.opentelemetry.io/contrib/propagators/b3"
 	"go.opentelemetry.io/otel/propagation"
-	"reflect"
 )
 
 const hertzContext = "hertz_context"
@@ -62,7 +64,7 @@ func makeResponse(resp any) map[string]any {
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Type().Field(i)
 		if jsonTag := field.Tag.Get("json"); jsonTag != "" && field.Name != "Code" && field.Name != "Msg" {
-			if fieldValue := v.Field(i).Interface(); !reflect.ValueOf(fieldValue).IsZero() {
+			if fieldValue := v.Field(i).Interface(); !reflect.ValueOf(fieldValue).IsZero() || !strings.Contains(jsonTag, "omitempty") {
 				data[jsonTag] = fieldValue
 			}
 		}

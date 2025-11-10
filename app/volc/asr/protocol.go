@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+
 	"github.com/xh-polaris/psych-pkg/util"
 )
 

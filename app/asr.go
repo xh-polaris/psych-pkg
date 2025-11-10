@@ -26,6 +26,8 @@ type (
 	// 如果ASR应用不支持一个长连接来实现有间隔的多轮识别, 则需在ASR内部维护链接的刷新
 	// 如果存在应用层面的握手过程需要由ASR内部实现
 	ASRApp interface {
+		// Dial 建立连接(包括配置过程), 收到First包后建立连接
+		Dial(ctx context.Context) error
 		// Send 发送音频流
 		// 标识结束的音频流是一个全为1的字节
 		Send(ctx context.Context, bytes []byte) error

@@ -32,7 +32,7 @@ func Error(format string, v ...any) {
 
 func CondError(cond bool, format string, v ...any) {
 	if cond {
-		Error(format, v...)
+		getLogger().Errorf(format, v...)
 	}
 }
 
