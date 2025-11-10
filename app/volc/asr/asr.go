@@ -88,11 +88,11 @@ func (asr *VcASRApp) start() (err error) {
 // Send 发送音频流
 func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	var payload, header []byte
-	asr.seq++
 	if app.IsFirstASR(data) {
 		return
 	}
 
+	asr.seq++
 	header = AudioPosDefaultHeader
 	if app.IsLastASR(data) { // 判断是否最后一个包, 若是则负载为空, 序号为负
 		header = AudioNegDefaultHeader

@@ -1,8 +1,6 @@
 module github.com/xh-polaris/psych-pkg
 
-go 1.24.0
-
-toolchain go1.24.6
+go 1.24.6
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
