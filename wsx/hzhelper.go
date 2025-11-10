@@ -3,11 +3,12 @@ package wsx
 import (
 	"context"
 	"fmt"
-	"github.com/hertz-contrib/websocket"
-	"github.com/xh-polaris/psych-pkg/util/logx"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/hertz-contrib/websocket"
+	"github.com/xh-polaris/psych-pkg/util/logx"
 )
 
 // classifyErr 将错误归类
@@ -105,14 +106,14 @@ func (ws *HZWSClient) WriteJSON(obj any) (err error) {
 func (ws *HZWSClient) Ping(data []byte) error {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	return ws.conn.WriteControl(websocket.PingMessage, data, time.Now().Add(DefaultTimeout))
+	return ws.classifyErr(ws.conn.WriteControl(websocket.PingMessage, data, time.Now().Add(DefaultTimeout)))
 }
 
 // Pong 写入Pong消息
 func (ws *HZWSClient) Pong(data []byte) error {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	return ws.conn.WriteControl(websocket.PongMessage, data, time.Now().Add(DefaultTimeout))
+	return ws.classifyErr(ws.conn.WriteControl(websocket.PongMessage, data, time.Now().Add(DefaultTimeout)))
 }
 
 func (ws *HZWSClient) SetPingHandler(h func(appData string) error) {
@@ -122,7 +123,7 @@ func (ws *HZWSClient) SetPingHandler(h func(appData string) error) {
 func (ws *HZWSClient) ControlClose(data []byte) error {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	return ws.conn.WriteControl(websocket.CloseMessage, data, time.Now().Add(DefaultTimeout))
+	return ws.classifyErr(ws.conn.WriteControl(websocket.CloseMessage, data, time.Now().Add(DefaultTimeout)))
 }
 
 func (ws *HZWSClient) SetCloseHandler(h func(code int, text string) error) {
@@ -136,7 +137,7 @@ func (ws *HZWSClient) Close() error {
 			logx.Error("[HZWSClient] send close msg error", err)
 		}
 		ws.closed = true
-		return ws.conn.Close()
+		return ws.classifyErr(ws.conn.Close())
 	}
 	return nil
 }

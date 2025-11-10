@@ -3,12 +3,13 @@ package wsx
 import (
 	"context"
 	"errors"
-	"github.com/gorilla/websocket"
-	"github.com/xh-polaris/psych-pkg/util/logx"
 	"io"
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/xh-polaris/psych-pkg/util/logx"
 )
 
 /*
@@ -153,7 +154,7 @@ func (ws *WSClient) WriteJSON(obj any) (err error) {
 func (ws *WSClient) WritePing() error {
 	ws.mu.Lock()
 	defer ws.mu.Unlock()
-	return ws.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(DefaultTimeout))
+	return ws.classifyErr(ws.conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(DefaultTimeout)))
 }
 
 // Close 关闭连接
@@ -163,7 +164,7 @@ func (ws *WSClient) Close() error {
 			logx.Error("[WSClient] send close msg error", err)
 		}
 		ws.closed = true
-		return ws.conn.Close()
+		return ws.classifyErr(ws.conn.Close())
 	}
 	return nil
 }
