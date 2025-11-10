@@ -82,6 +82,7 @@ func (asr *VcASRApp) start() (err error) {
 	if err = asr.wsx.WriteBytes(fullClientRequest); err != nil {
 		return err
 	}
+	asr.seq++
 	return
 }
 
@@ -92,7 +93,6 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 		return
 	}
 
-	asr.seq++
 	header = AudioPosDefaultHeader
 	if app.IsLastASR(data) { // 判断是否最后一个包, 若是则负载为空, 序号为负
 		header = AudioNegDefaultHeader
@@ -111,6 +111,7 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	if err = asr.wsx.WriteBytes(audioOnlyRequest); err != nil {
 		return err
 	}
+	asr.seq++
 	return nil
 }
 
