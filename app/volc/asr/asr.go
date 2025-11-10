@@ -89,6 +89,9 @@ func (asr *VcASRApp) start() (err error) {
 func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 	var payload, header []byte
 	asr.seq++
+	if app.IsFirstASR(data) {
+		return
+	}
 
 	header = AudioPosDefaultHeader
 	if app.IsLastASR(data) { // 判断是否最后一个包, 若是则负载为空, 序号为负
@@ -112,27 +115,27 @@ func (asr *VcASRApp) Send(ctx context.Context, data []byte) (err error) {
 }
 
 // Receive 接受响应
-func (asr *VcASRApp) Receive(_ context.Context) (text string, err error) {
+func (asr *VcASRApp) Receive(_ context.Context) (text string, last bool, err error) {
 	var msg []byte
 	var mt int
 	if mt, msg, err = asr.wsx.Read(); err == nil {
 		switch mt {
 		case websocket.BinaryMessage:
 			resp := ParseResponse(msg)
-			return resp.PayloadMsg.Result.Text, nil
+			return resp.PayloadMsg.Result.Text, resp.IsLastPackage, nil
 		case websocket.TextMessage:
 			return asr.receiveText(msg)
 		default:
-			return "", fmt.Errorf("[volc asr] Receive: invalid websocket message")
+			return "", false, fmt.Errorf("[volc asr] Receive: invalid websocket message")
 		}
 	}
-	return "", err
+	return "", false, err
 }
 
 // receiveText 接受到文本消息, 暂无实际用途
-func (asr *VcASRApp) receiveText(res []byte) (string, error) {
+func (asr *VcASRApp) receiveText(res []byte) (string, bool, error) {
 	logx.Info("[volc asr] receiveText: ", string(res))
-	return "", nil
+	return "", false, nil
 }
 
 // Close 释放资源

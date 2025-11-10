@@ -32,7 +32,7 @@ type (
 		// 标识结束的音频流是一个全为1的字节
 		Send(ctx context.Context, bytes []byte) error
 		// Receive 接受文字响应 TODO: 暂时只有使用文字的需求, 后续若用到其余部分再迭代
-		Receive(ctx context.Context) (string, error)
+		Receive(ctx context.Context) (string, bool, error)
 		// Close  关闭连接, 释放资源
 		Close() error
 	}
