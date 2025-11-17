@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/xh-polaris/psych-pkg/util"
 	"time"
+
+	"github.com/xh-polaris/psych-pkg/util"
 )
 
 // 定义前后端通信的协议
@@ -78,6 +79,7 @@ type (
 	// Config 配置消息
 	Config struct {
 		Id           string       `json:"id"`        // 配置id
+		Type         string       `json:"type"`      // 配置类型, Chain | End2End
 		ModelName    string       `json:"modelName"` // 模型名称
 		ModelView    string       `json:"modelView"` // 模型外观路径
 		ChatConfig   ChatConfig   `json:"chatConfig"`
